@@ -34,6 +34,21 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
+
+def get_allowed_origins() -> list[str]:
+    """Return normalized CORS origins from env or safe defaults."""
+    raw = os.getenv("ALLOWED_ORIGINS", "").strip()
+    if raw:
+        origins = [o.strip().rstrip("/") for o in raw.split(",") if o.strip()]
+        return origins
+
+    # Defaults cover local Vite dev plus common production hostname variants.
+    return [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://manhwa-rank.vercel.app",
+    ]
+
 # ── Async HTTP client (created at startup, closed on shutdown) ──
 http_client: httpx.AsyncClient | None = None
 
@@ -54,9 +69,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+ALLOWED_ORIGINS = get_allowed_origins()
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000/", "https://mannhwa-rank.vercel.app/"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
