@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+.env
+
+# Node
+node_modules/
+frontend/node_modules/
+
+# Build outputs
+frontend/dist/
+dist/
+
+# Local caches and generated files
+.cache/
+*.log
+
+# State/checkpoint files
+*.state.json
+
+# IDE
+.vscode/

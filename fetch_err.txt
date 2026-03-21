@@ -1,0 +1,70 @@
+Traceback (most recent call last):
+  File "C:\Users\Adill\Documents\project_manhwa_v2\manhwa-aggregator\scraper\fetch_mangadex.py", line 290, in <module>
+    records = fetch_all_manga()
+  File "C:\Users\Adill\Documents\project_manhwa_v2\manhwa-aggregator\scraper\fetch_mangadex.py", line 162, in fetch_all_manga
+    data = safe_get(f"{MANGADEX_BASE}/manga", params={
+        "originalLanguage[]": ["ko", "zh"],
+    ...<3 lines>...
+        "order[followedCount]": "desc",
+    })
+  File "C:\Users\Adill\Documents\project_manhwa_v2\manhwa-aggregator\scraper\fetch_mangadex.py", line 58, in safe_get
+    r = client.get(url, params=params)
+  File "C:\Users\Adill\Documents\project_manhwa_v2\manhwa-aggregator\.venv\Lib\site-packages\httpx\_client.py", line 1053, in get
+    return self.request(
+           ~~~~~~~~~~~~^
+        "GET",
+        ^^^^^^
+    ...<7 lines>...
+        extensions=extensions,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Adill\Documents\project_manhwa_v2\manhwa-aggregator\.venv\Lib\site-packages\httpx\_client.py", line 825, in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Adill\Documents\project_manhwa_v2\manhwa-aggregator\.venv\Lib\site-packages\httpx\_client.py", line 928, in send
+    raise exc
+  File "C:\Users\Adill\Documents\project_manhwa_v2\manhwa-aggregator\.venv\Lib\site-packages\httpx\_client.py", line 922, in send
+    response.read()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\Adill\Documents\project_manhwa_v2\manhwa-aggregator\.venv\Lib\site-packages\httpx\_models.py", line 881, in read
+    self._content = b"".join(self.iter_bytes())
+                    ~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Adill\Documents\project_manhwa_v2\manhwa-aggregator\.venv\Lib\site-packages\httpx\_models.py", line 897, in iter_bytes
+    for raw_bytes in self.iter_raw():
+                     ~~~~~~~~~~~~~^^
+  File "C:\Users\Adill\Documents\project_manhwa_v2\manhwa-aggregator\.venv\Lib\site-packages\httpx\_models.py", line 951, in iter_raw
+    for raw_stream_bytes in self.stream:
+                            ^^^^^^^^^^^
+  File "C:\Users\Adill\Documents\project_manhwa_v2\manhwa-aggregator\.venv\Lib\site-packages\httpx\_client.py", line 153, in __iter__
+    for chunk in self._stream:
+                 ^^^^^^^^^^^^
+  File "C:\Users\Adill\Documents\project_manhwa_v2\manhwa-aggregator\.venv\Lib\site-packages\httpx\_transports\default.py", line 127, in __iter__
+    for part in self._httpcore_stream:
+                ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Adill\Documents\project_manhwa_v2\manhwa-aggregator\.venv\Lib\site-packages\httpcore\_sync\connection_pool.py", line 407, in __iter__
+    raise exc from None
+  File "C:\Users\Adill\Documents\project_manhwa_v2\manhwa-aggregator\.venv\Lib\site-packages\httpcore\_sync\connection_pool.py", line 403, in __iter__
+    for part in self._stream:
+                ^^^^^^^^^^^^
+  File "C:\Users\Adill\Documents\project_manhwa_v2\manhwa-aggregator\.venv\Lib\site-packages\httpcore\_sync\http11.py", line 342, in __iter__
+    raise exc
+  File "C:\Users\Adill\Documents\project_manhwa_v2\manhwa-aggregator\.venv\Lib\site-packages\httpcore\_sync\http11.py", line 334, in __iter__
+    for chunk in self._connection._receive_response_body(**kwargs):
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\Adill\Documents\project_manhwa_v2\manhwa-aggregator\.venv\Lib\site-packages\httpcore\_sync\http11.py", line 203, in _receive_response_body
+    event = self._receive_event(timeout=timeout)
+  File "C:\Users\Adill\Documents\project_manhwa_v2\manhwa-aggregator\.venv\Lib\site-packages\httpcore\_sync\http11.py", line 217, in _receive_event
+    data = self._network_stream.read(
+        self.READ_NUM_BYTES, timeout=timeout
+    )
+  File "C:\Users\Adill\Documents\project_manhwa_v2\manhwa-aggregator\.venv\Lib\site-packages\httpcore\_backends\sync.py", line 128, in read
+    return self._sock.recv(max_bytes)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "C:\Python314\Lib\ssl.py", line 1285, in recv
+    return self.read(buflen)
+           ~~~~~~~~~^^^^^^^^
+  File "C:\Python314\Lib\ssl.py", line 1140, in read
+    return self._sslobj.read(len)
+           ~~~~~~~~~~~~~~~~~^^^^^
+KeyboardInterrupt

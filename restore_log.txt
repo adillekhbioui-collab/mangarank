@@ -1,0 +1,11 @@
+============================================================
+  Scoring & Aggregation Pipeline
+============================================================
+
+  Loading deduplicated.json ΓÇª
+  Γ£ô Loaded 26139 unique manga
+
+  Computing weighted scores & completion rates ΓÇª
+  Γ£ô 6861 manga scored, 19278 have no rating data
+
+  Upserting to manga_rankings ΓÇª
