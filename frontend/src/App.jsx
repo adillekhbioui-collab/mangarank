@@ -293,6 +293,7 @@ function HomePage({ initialTopTab = 'browse' }) {
     const [searchInput, setSearchInput] = useState('')
     const [minChaptersInput, setMinChaptersInput] = useState('0')
     const [copied, setCopied] = useState(false)
+    const [categoryTooltip, setCategoryTooltip] = useState(null)
 
     const searchCommitBaseRef = useRef('')
     const minCommitBaseRef = useRef(0)
@@ -568,7 +569,14 @@ function HomePage({ initialTopTab = 'browse' }) {
 
     // ── Prefetch next page in regular mode ──
     useEffect(() => {
-        if (!loading && !category && page < totalPages) {
+        const hasActiveFilters =
+            genreInclude.length > 0 ||
+            genreExclude.length > 0 ||
+            Boolean(status) ||
+            minChapters > 0 ||
+            Boolean(search)
+
+        if (!loading && !category && !hasActiveFilters && page > 1 && page < totalPages) {
             fetchManga({
                 genre_include: genreInclude.length > 0 ? genreInclude : undefined,
                 genre_exclude: genreExclude.length > 0 ? genreExclude : undefined,
@@ -673,18 +681,40 @@ function HomePage({ initialTopTab = 'browse' }) {
             {topTab === 'browse' && (
                 <>
                     <div className="category-strip">
-                        {QUICK_FILTERS.map(({ label, category: quickCategory }) => (
+                        {QUICK_FILTERS.map(({ label, category: quickCategory, desc }) => (
                             <div
                                 key={quickCategory}
                                 className={`category-card ${activeQuickFilter === quickCategory ? 'active' : ''}`}
                                 data-cat={quickCategory}
                                 onClick={() => handleQuickFilter(quickCategory)}
+                                onMouseEnter={(e) => {
+                                    if (!desc) return
+                                    const rect = e.currentTarget.getBoundingClientRect()
+                                    setCategoryTooltip({
+                                        text: desc,
+                                        left: rect.left + (rect.width / 2),
+                                        top: rect.top - 10,
+                                    })
+                                }}
+                                onMouseLeave={() => setCategoryTooltip(null)}
                             >
                                 <div className="cat-name">{label.replace(/[^a-zA-Z\s]/g, '').trim()}</div>
                                 <div className="cat-count">VIEW CATEGORY</div>
                             </div>
                         ))}
                     </div>
+
+                    {categoryTooltip && (
+                        <div
+                            className="category-tooltip"
+                            style={{
+                                left: `${categoryTooltip.left}px`,
+                                top: `${categoryTooltip.top}px`,
+                            }}
+                        >
+                            {categoryTooltip.text}
+                        </div>
+                    )}
 
                     <div className="mobile-filter-toolbar">
                         <button

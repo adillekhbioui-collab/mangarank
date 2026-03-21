@@ -159,6 +159,10 @@ button { background: none; border: none; cursor: pointer; font-family: inherit; 
   transition: background-color .15s ease, color .15s ease;
 }
 
+.category-card:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
 .category-card.active {
   background-color: #ffffff;
   color: #000000;
@@ -190,6 +194,43 @@ button { background: none; border: none; cursor: pointer; font-family: inherit; 
   font-family: var(--font-data);
   font-size: 10px;
   color: var(--text-secondary);
+}
+
+.category-tooltip {
+  position: fixed;
+  transform: translate(-50%, -100%);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-red);
+  color: var(--text-primary);
+  font-family: var(--font-data);
+  font-size: 11px;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  max-width: 240px;
+  padding: 8px 10px;
+  border-radius: 3px;
+  z-index: 1100;
+  pointer-events: none;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+  animation: category-tooltip-in .12s ease-out;
+}
+
+@keyframes category-tooltip-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-100% - 4px));
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -100%);
+  }
+}
+
+@media (max-width: 768px) {
+  .category-tooltip {
+    display: none;
+  }
 }
 
 /* --- 3. MAIN CONTENT LAYOUT --- */
