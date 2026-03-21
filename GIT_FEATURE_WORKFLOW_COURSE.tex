@@ -1,0 +1,334 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{fancyvrb}
+\usepackage{titlesec}
+\usepackage{longtable}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue,
+  pdftitle={Git Feature Workflow Course},
+  pdfauthor={ManhwaRank: The Archive}
+}
+
+\titleformat{\section}{\large\bfseries}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{0.6em}{}
+
+\title{Git Feature Workflow Course \\ \large Practical Git for ManhwaRank: The Archive}
+\author{Project Training Notes}
+\date{\today}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Course Goal}
+This course teaches a complete, repeatable Git workflow for adding new features safely to your project.
+
+After this course, you should be able to:
+\begin{itemize}[leftmargin=1.5em]
+  \item create feature branches correctly,
+  \item commit cleanly with meaningful history,
+  \item keep your branch updated with \texttt{main},
+  \item open and merge pull requests,
+  \item resolve merge conflicts,
+  \item revert mistakes without panic,
+  \item deploy confidently after merge.
+\end{itemize}
+
+\section{Mental Model}
+Think of Git as three layers:
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textbf{Working tree}: files you edit.
+  \item \textbf{Staging area} (index): files selected for next commit.
+  \item \textbf{Repository history}: commits already saved.
+\end{enumerate}
+
+\subsection{Golden Rules}
+\begin{itemize}[leftmargin=1.5em]
+  \item Never build features directly on \texttt{main}.
+  \item One feature or fix per branch.
+  \item Small commits with clear messages are easier to review and debug.
+  \item Always pull latest \texttt{main} before branching and before merging.
+  \item Do not commit secrets (\texttt{.env}, tokens, API keys).
+\end{itemize}
+
+\section{One-Time Setup}
+Run these once on your machine.
+
+\subsection{Identity}
+\begin{Verbatim}[fontsize=\small]
+git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+\end{Verbatim}
+
+\subsection{Helpful Defaults}
+\begin{Verbatim}[fontsize=\small]
+git config --global init.defaultBranch main
+git config --global pull.rebase false
+git config --global fetch.prune true
+git config --global core.autocrlf true
+\end{Verbatim}
+
+\subsection{Verify Remote}
+\begin{Verbatim}[fontsize=\small]
+git remote -v
+\end{Verbatim}
+
+Expected remote style:
+\begin{Verbatim}[fontsize=\small]
+origin  https://github.com/<your-org-or-user>/<repo>.git (fetch)
+origin  https://github.com/<your-org-or-user>/<repo>.git (push)
+\end{Verbatim}
+
+\section{Project Workflow Standard}
+Use this exact cycle for each new feature.
+
+\subsection{Step 1: Start Clean on Main}
+\begin{Verbatim}[fontsize=\small]
+cd C:\Users\Adill\Documents\project_manhwa_v2\manhwa-aggregator
+git checkout main
+git pull origin main
+git status
+\end{Verbatim}
+
+You want: \texttt{working tree clean}.
+
+\subsection{Step 2: Create a Feature Branch}
+Branch naming pattern:
+\begin{itemize}[leftmargin=1.5em]
+  \item \texttt{feature/<short-name>}
+  \item \texttt{fix/<short-name>}
+  \item \texttt{chore/<short-name>}
+\end{itemize}
+
+Example:
+\begin{Verbatim}[fontsize=\small]
+git checkout -b feature/cors-env-origins
+\end{Verbatim}
+
+\subsection{Step 3: Build in Small Increments}
+As you code, check changes often:
+\begin{Verbatim}[fontsize=\small]
+git status
+git diff
+\end{Verbatim}
+
+Stage only relevant files:
+\begin{Verbatim}[fontsize=\small]
+git add backend/main.py
+git add DEPLOY_FREE.md
+\end{Verbatim}
+
+Commit with a strong message:
+\begin{Verbatim}[fontsize=\small]
+git commit -m "Add env-based CORS origin configuration"
+\end{Verbatim}
+
+Good commit message pattern:
+\begin{itemize}[leftmargin=1.5em]
+  \item Imperative verb first: Add, Fix, Refactor, Update, Remove.
+  \item Say what changed, not how hard it was.
+  \item Keep first line around 50--72 chars if possible.
+\end{itemize}
+
+\subsection{Step 4: Push Branch}
+\begin{Verbatim}[fontsize=\small]
+git push -u origin feature/cors-env-origins
+\end{Verbatim}
+
+\subsection{Step 5: Open Pull Request}
+On GitHub:
+\begin{enumerate}[leftmargin=1.5em]
+  \item Open PR from \texttt{feature/...} into \texttt{main}.
+  \item Add clear title and summary.
+  \item Verify CI checks pass.
+  \item Merge when green.
+\end{enumerate}
+
+\subsection{Step 6: Sync Local After Merge}
+\begin{Verbatim}[fontsize=\small]
+git checkout main
+git pull origin main
+git branch -d feature/cors-env-origins
+git push origin --delete feature/cors-env-origins
+\end{Verbatim}
+
+\section{Daily Command Cheatsheet}
+\begin{longtable}{p{0.33\textwidth} p{0.6\textwidth}}
+\textbf{Command} & \textbf{What it does} \\
+\hline
+\texttt{git status} & Show changed, staged, and untracked files. \\
+\texttt{git diff} & Show unstaged content changes. \\
+\texttt{git diff --staged} & Show staged changes for next commit. \\
+\texttt{git add <file>} & Stage a specific file. \\
+\texttt{git add -p} & Stage selected hunks interactively. \\
+\texttt{git commit -m "msg"} & Create a commit from staged files. \\
+\texttt{git log --oneline -n 10} & Show recent commit history. \\
+\texttt{git pull origin main} & Update local main with remote main. \\
+\texttt{git checkout -b <branch>} & Create and switch to a new branch. \\
+\texttt{git push -u origin <branch>} & Push branch and set upstream. \\
+\end{longtable}
+
+\section{Feature Development Example (Realistic)}
+Goal: add environment-based CORS allow list.
+
+\subsection{Branch}
+\begin{Verbatim}[fontsize=\small]
+git checkout main
+git pull origin main
+git checkout -b feature/cors-env-origins
+\end{Verbatim}
+
+\subsection{Implement + Validate}
+\begin{Verbatim}[fontsize=\small]
+uvicorn backend.main:app --reload --port 8000
+\end{Verbatim}
+
+If startup is successful, stop with Ctrl+C.
+
+\subsection{Commit}
+\begin{Verbatim}[fontsize=\small]
+git add backend/main.py DEPLOY_FREE.md
+git commit -m "Support ALLOWED_ORIGINS env var for CORS"
+git push -u origin feature/cors-env-origins
+\end{Verbatim}
+
+\section{How to Handle Mistakes}
+\subsection{Case A: Wrong file staged}
+\begin{Verbatim}[fontsize=\small]
+git restore --staged <file>
+\end{Verbatim}
+
+\subsection{Case B: Edited file but want to discard local changes}
+\begin{Verbatim}[fontsize=\small]
+git restore <file>
+\end{Verbatim}
+
+\subsection{Case C: Last commit message is wrong}
+\begin{Verbatim}[fontsize=\small]
+git commit --amend -m "Better commit message"
+\end{Verbatim}
+
+\subsection{Case D: Need to undo one bad commit safely}
+\begin{Verbatim}[fontsize=\small]
+git revert <commit-hash>
+\end{Verbatim}
+
+\textbf{Use \texttt{revert} for shared branches.} It creates a new commit that undoes changes without rewriting history.
+
+\section{Merge Conflict Playbook}
+When \texttt{main} changed the same lines as your branch:
+
+\subsection{Update Branch}
+\begin{Verbatim}[fontsize=\small]
+git checkout feature/your-branch
+git fetch origin
+git merge origin/main
+\end{Verbatim}
+
+\subsection{Resolve}
+\begin{enumerate}[leftmargin=1.5em]
+  \item Open conflicted files.
+  \item Remove conflict markers:\\
+  \texttt{<<<<<<<}, \texttt{=======}, \texttt{>>>>>>>}.
+  \item Keep the correct final code.
+  \item Run app/tests.
+\end{enumerate}
+
+\subsection{Finalize}
+\begin{Verbatim}[fontsize=\small]
+git add <resolved-file-1> <resolved-file-2>
+git commit
+git push
+\end{Verbatim}
+
+\section{Git and Deployment (Your Current Stack)}
+\subsection{Triggering Deploys}
+\begin{itemize}[leftmargin=1.5em]
+  \item Push to \texttt{main} triggers Render and Vercel auto deploys.
+  \item If build cache is problematic, use \texttt{Redeploy without cache}.
+\end{itemize}
+
+\subsection{Important for This Repo}
+\begin{itemize}[leftmargin=1.5em]
+  \item Keep \texttt{node\_modules} out of Git.
+  \item Keep \texttt{.env} out of Git.
+  \item Keep frontend root directory correctly configured in Vercel.
+  \item Keep backend root directory correctly configured in Render.
+\end{itemize}
+
+\section{Recommended Team Policy (Simple but Strong)}
+\begin{enumerate}[leftmargin=1.5em]
+  \item No direct coding on \texttt{main}.
+  \item Every change goes through feature branch + PR.
+  \item CI must pass before merge.
+  \item One logical feature per PR.
+  \item Use descriptive commit messages.
+\end{enumerate}
+
+\section{Weekly Hygiene}
+Once a week:
+\begin{Verbatim}[fontsize=\small]
+git checkout main
+git pull origin main
+git branch --merged
+\end{Verbatim}
+
+Delete merged local branches you no longer need.
+
+\section{Troubleshooting FAQ}
+\subsection*{Q1: \texttt{remote origin already exists}}
+\begin{Verbatim}[fontsize=\small]
+git remote set-url origin https://github.com/<owner>/<repo>.git
+\end{Verbatim}
+
+\subsection*{Q2: 403 permission denied on push}
+Usually wrong cached GitHub account.
+\begin{Verbatim}[fontsize=\small]
+@"
+protocol=https
+host=github.com
+"@ | git credential-manager erase
+\end{Verbatim}
+Then push again and sign in with the correct account.
+
+\subsection*{Q3: Vercel build exits with 126}
+Likely executable permission issue from tracked \texttt{node\_modules}. Remove tracked dependency folders and redeploy without cache.
+
+\section{30-Second Workflow Summary}
+For every new feature:
+\begin{Verbatim}[fontsize=\small]
+git checkout main
+git pull origin main
+git checkout -b feature/<name>
+# edit files
+# run app/tests
+git add <relevant-files>
+git commit -m "Add <feature>"
+git push -u origin feature/<name>
+# open PR, merge
+git checkout main
+git pull origin main
+\end{Verbatim}
+
+\section{Final Advice}
+Consistency beats cleverness. If you always follow the same branch-commit-PR cycle, Git becomes predictable, safe, and fast.
+
+Your next practical step:
+\begin{enumerate}[leftmargin=1.5em]
+  \item Pick one small feature.
+  \item Do it using this exact workflow.
+  \item Repeat until it becomes muscle memory.
+\end{enumerate}
+
+\end{document}

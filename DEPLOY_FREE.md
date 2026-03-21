@@ -18,7 +18,7 @@ git init
 git add .
 git commit -m "prepare free deployment"
 git branch -M main
-git remote add origin https://github.com/<your-username>/<your-repo>.git
+git remote add origin https://github.com/adillekhbioui-collab/manga-rank.git
 git push -u origin main
 ```
 
@@ -54,7 +54,7 @@ After deploy, copy backend URL, example:
    - Build Command: `npm run build`
    - Output Directory: `dist`
 5. Add Environment Variable:
-   - `VITE_API_BASE_URL` = your Render backend URL (no trailing slash)
+   - `   ` = your Render backend URL (no trailing slash)
 6. Deploy.
 
 Example:
