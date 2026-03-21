@@ -44,6 +44,7 @@ def get_allowed_origins() -> list[str]:
 
     # Defaults cover local Vite dev plus common production hostname variants.
     return [
+        "http://localhost:8000",
         "http://localhost:5173",
         "http://localhost:3000",
         "https://manhwa-rank.vercel.app",
