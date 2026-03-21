@@ -262,6 +262,7 @@ function HomePage({ initialTopTab = 'browse' }) {
     const [searchParams, setSearchParams] = useSearchParams()
     const { theme, toggleTheme, isDark } = useTheme()
     const [topTab, setTopTab] = useState(initialTopTab)
+    const [isHeaderHidden, setIsHeaderHidden] = useState(false)
 
     // ── Local UI state ──
     const [viewMode, setViewMode] = useState('list')
@@ -288,10 +289,7 @@ function HomePage({ initialTopTab = 'browse' }) {
     const [blacklistedGenres, setBlacklistedGenres] = useState([])
     const [loading, setLoading] = useState(true)
     const [totalPages, setTotalPages] = useState(1)
-    const [sidebarOpen, setSidebarOpen] = useState(false)
-    const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-    const [gridColumns, setGridColumns] = useState(5)
-    const [filtersVisible, setFiltersVisible] = useState(true)
+    const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false)
     const [searchInput, setSearchInput] = useState('')
     const [minChaptersInput, setMinChaptersInput] = useState('0')
     const [copied, setCopied] = useState(false)
@@ -299,6 +297,8 @@ function HomePage({ initialTopTab = 'browse' }) {
     const searchCommitBaseRef = useRef('')
     const minCommitBaseRef = useRef(0)
     const copyTimeoutRef = useRef(null)
+    const lastScrollYRef = useRef(0)
+    const scrollFrameRef = useRef(null)
 
     const filters = useMemo(
         () => getFiltersFromURL(searchParams, genres, blacklistedGenres),
@@ -319,6 +319,15 @@ function HomePage({ initialTopTab = 'browse' }) {
 
     const activeQuickFilter = category || null
     const isCategoryMode = Boolean(activeQuickFilter)
+    const activeFilterCount = useMemo(() => {
+        let count = 0
+        if (genreInclude.length > 0) count += 1
+        if (status) count += 1
+        if (sortBy !== DEFAULT_FILTERS.sort_by) count += 1
+        if (minChapters > 0) count += 1
+        if (search) count += 1
+        return count
+    }, [genreInclude.length, status, sortBy, minChapters, search])
 
     const applyURL = useCallback((nextFilters, mode = 'push') => {
         setSearchParams(buildURLSearchParams(nextFilters), { replace: mode === 'replace' })
@@ -457,6 +466,55 @@ function HomePage({ initialTopTab = 'browse' }) {
         }
     }, [])
 
+    useEffect(() => {
+        document.body.classList.toggle('sheet-open', isMobileFilterOpen)
+        return () => document.body.classList.remove('sheet-open')
+    }, [isMobileFilterOpen])
+
+    useEffect(() => {
+        if (isMobileFilterOpen) {
+            setIsHeaderHidden(false)
+            return
+        }
+
+        lastScrollYRef.current = window.scrollY || 0
+
+        const onScroll = () => {
+            if (scrollFrameRef.current != null) return
+
+            scrollFrameRef.current = window.requestAnimationFrame(() => {
+                const currentScrollY = window.scrollY || 0
+                const delta = currentScrollY - lastScrollYRef.current
+
+                if (currentScrollY <= 8) {
+                    setIsHeaderHidden(false)
+                } else if (delta > 10 && currentScrollY > 72) {
+                    setIsHeaderHidden(true)
+                } else if (delta < -4) {
+                    setIsHeaderHidden(false)
+                }
+
+                lastScrollYRef.current = currentScrollY
+                scrollFrameRef.current = null
+            })
+        }
+
+        window.addEventListener('scroll', onScroll, { passive: true })
+
+        return () => {
+            window.removeEventListener('scroll', onScroll)
+            if (scrollFrameRef.current != null) {
+                window.cancelAnimationFrame(scrollFrameRef.current)
+                scrollFrameRef.current = null
+            }
+        }
+    }, [isMobileFilterOpen])
+
+    useEffect(() => {
+        document.body.classList.toggle('header-hidden', isHeaderHidden && !isMobileFilterOpen)
+        return () => document.body.classList.remove('header-hidden')
+    }, [isHeaderHidden, isMobileFilterOpen])
+
     // ── Fetch manga whenever URL filters change ──
     const loadManga = useCallback(async () => {
         setLoading(true)
@@ -577,7 +635,7 @@ function HomePage({ initialTopTab = 'browse' }) {
 
     return (
         <>
-            <header className="site-header">
+            <header className={`site-header ${isHeaderHidden ? 'site-header-hidden' : ''}`}>
                 <div className="header-left">
                     <Link to="/" className="logo" onClick={() => updateMainFilters({}, 'push')}>
                         <span className="logo-manhwa">MANHWA</span>
@@ -628,9 +686,42 @@ function HomePage({ initialTopTab = 'browse' }) {
                         ))}
                     </div>
 
+                    <div className="mobile-filter-toolbar">
+                        <button
+                            type="button"
+                            className="mobile-filter-btn"
+                            onClick={() => setIsMobileFilterOpen(true)}
+                        >
+                            FILTER
+                            {activeFilterCount > 0 && <span className="mobile-filter-badge">{activeFilterCount}</span>}
+                        </button>
+                        <div className="mobile-view-toggle">
+                            <button
+                                type="button"
+                                className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+                                onClick={() => setViewMode('list')}
+                            >
+                                LIST
+                            </button>
+                            <button
+                                type="button"
+                                className={`view-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                                onClick={() => setViewMode('grid')}
+                            >
+                                GRID
+                            </button>
+                        </div>
+                    </div>
+
+                    {isMobileFilterOpen && <div className="mobile-filter-backdrop" onClick={() => setIsMobileFilterOpen(false)} />}
+
                     <div className="main-layout">
                 {/* ── Filter Panel ── */}
-                <aside className="filter-panel">
+                <aside className={`filter-panel ${isMobileFilterOpen ? 'mobile-open' : ''}`}>
+                    <div className="mobile-filter-header">
+                        <span>Filters</span>
+                        <button type="button" onClick={() => setIsMobileFilterOpen(false)}>Close</button>
+                    </div>
                     <UnifiedGenrePicker
                         allGenres={genres}
                         defaultExcludedGenres={defaultExcludedGenres}
@@ -663,15 +754,30 @@ function HomePage({ initialTopTab = 'browse' }) {
 
                     <div className="filter-section">
                         <div className="filter-label">Status</div>
-                        {['', 'ongoing', 'completed'].map((v) => (
-                            <span 
-                                key={v} 
-                                className={`filter-status-option ${status === v ? 'active' : ''}`}
-                                onClick={() => updateMainFilters({ status: v })}
-                            >
-                                {v === '' ? 'ALL' : v}
-                            </span>
-                        ))}
+                        <div className="filter-status-segmented mobile-only">
+                            {['', 'ongoing', 'completed'].map((v) => (
+                                <button
+                                    type="button"
+                                    key={`seg-${v || 'all'}`}
+                                    className={`filter-segment ${status === v ? 'active' : ''}`}
+                                    onClick={() => updateMainFilters({ status: v })}
+                                >
+                                    {v === '' ? 'ALL' : v}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="desktop-only">
+                            {['', 'ongoing', 'completed'].map((v) => (
+                                <span
+                                    key={v}
+                                    className={`filter-status-option ${status === v ? 'active' : ''}`}
+                                    onClick={() => updateMainFilters({ status: v })}
+                                >
+                                    {v === '' ? 'ALL' : v}
+                                </span>
+                            ))}
+                        </div>
                     </div>
 
                     <div className="filter-section">
@@ -685,9 +791,21 @@ function HomePage({ initialTopTab = 'browse' }) {
                     </div>
 
                     <div className="filter-section" style={{ borderBottom: 'none' }}>
-                        <div className="filter-label">Min Chapters</div>
+                        <div className="filter-label filter-label-row">
+                            <span>Min Chapters</span>
+                            <span className="mobile-value-badge mobile-only">{minChapters}</span>
+                        </div>
                         <input
-                            className="filter-number"
+                            className="mobile-range-slider mobile-only"
+                            type="range"
+                            min="0"
+                            max="500"
+                            step="10"
+                            value={minChapters}
+                            onChange={(e) => handleMinChaptersChange(e.target.value)}
+                        />
+                        <input
+                            className="filter-number desktop-only"
                             type="number"
                             min="0"
                             value={minChaptersInput}
@@ -697,6 +815,14 @@ function HomePage({ initialTopTab = 'browse' }) {
                             onKeyDown={handleMinChaptersKeyDown}
                         />
                     </div>
+
+                    <button
+                        type="button"
+                        className="mobile-apply-btn"
+                        onClick={() => setIsMobileFilterOpen(false)}
+                    >
+                        APPLY FILTERS
+                    </button>
                 </aside>
 
                 {/* ── Main Content ── */}
@@ -773,7 +899,7 @@ function HomePage({ initialTopTab = 'browse' }) {
                                                     <span className={`strip-status ${badgeLabel.toLowerCase()}`}>{badgeLabel}</span>
                                                 </div>
                                             </div>
-                                            <div className="strip-watchlist-col" style={{display:'flex', alignItems:'center', marginLeft:'auto', marginRight:'16px'}}><WatchlistButton manga={m} compact /></div>
+                                            <div className="strip-watchlist-col"><WatchlistButton manga={m} compact /></div>
                                             <div className="strip-score-col">
                                                 <div className={`strip-score ${scoreColorClass}`}>
                                                     {m.aggregated_score != null ? Math.round(m.aggregated_score) : '—'}

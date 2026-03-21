@@ -57,6 +57,14 @@ button { background: none; border: none; cursor: pointer; font-family: inherit; 
   justify-content: space-between;
   padding: 0 24px;
   z-index: 100;
+  transition: transform 220ms ease, opacity 220ms ease;
+  will-change: transform;
+}
+
+.site-header.site-header-hidden {
+  transform: translateY(calc(-100% - 1px));
+  opacity: 0;
+  pointer-events: none;
 }
 
 .header-left .logo {
@@ -1848,4 +1856,415 @@ body, header, aside, .manga-strip, .manga-grid, .manga-card, .filter-panel, .cat
   background: var(--bg-elevated);
   border-color: var(--border);
   box-shadow: 0 4px 12px rgba(26, 20, 16, 0.1);
+}
+
+/* ────────────────────────────────────────────────────────── */
+/* MOBILE OPTIMIZATION (P0)                                  */
+/* ────────────────────────────────────────────────────────── */
+
+body.sheet-open {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+.strip-watchlist-col {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  margin-right: 16px;
+}
+
+.mobile-filter-toolbar,
+.mobile-filter-backdrop,
+.mobile-filter-header,
+.mobile-apply-btn {
+  display: none;
+}
+
+.mobile-only {
+  display: none;
+}
+
+.desktop-only {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  * {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  .site-header {
+    height: auto;
+    min-height: var(--header-height);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    padding-top: max(10px, env(safe-area-inset-top));
+  }
+
+  .header-left .logo-manhwa,
+  .header-left .logo-rank {
+    font-size: 17px;
+  }
+
+  .header-right {
+    display: contents;
+  }
+
+  .header-right .search-input {
+    width: 100%;
+    min-width: 0;
+    grid-column: 2;
+    padding: 9px 10px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+
+  .theme-toggle {
+    grid-column: 3;
+    margin-left: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    font-size: 0;
+    line-height: 0;
+  }
+
+  .theme-toggle::before {
+    content: '◐';
+    font-size: 14px;
+    line-height: 1;
+    color: var(--text-secondary);
+  }
+
+  [data-theme="light"] .theme-toggle::before {
+    content: '◑';
+  }
+
+  .category-strip {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .category-card {
+    flex: 0 0 160px;
+    height: 54px;
+  }
+
+  .mobile-filter-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    position: sticky;
+    top: calc(var(--header-height) + env(safe-area-inset-top));
+    z-index: 12;
+    padding: 8px 12px;
+    background: rgba(13, 11, 14, 0.95);
+    border-bottom: 1px solid var(--border);
+    transition: top 220ms ease;
+  }
+
+  body.header-hidden .mobile-filter-toolbar {
+    top: env(safe-area-inset-top);
+  }
+
+  .mobile-filter-btn {
+    min-height: 44px;
+    padding: 0 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    font-family: var(--font-data);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .mobile-filter-badge {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-red);
+    color: #fff;
+    font-size: 10px;
+    letter-spacing: 0;
+  }
+
+  .mobile-view-toggle {
+    display: flex;
+    gap: 8px;
+  }
+
+  .mobile-view-toggle .view-toggle-btn {
+    min-height: 44px;
+    min-width: 72px;
+    padding: 0 12px;
+  }
+
+  .view-controls {
+    display: none !important;
+  }
+
+  .main-layout {
+    padding: 12px;
+    gap: 14px;
+  }
+
+  .mobile-filter-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 80;
+  }
+
+  .filter-panel {
+    width: 100%;
+  }
+
+  .filter-panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 90;
+    max-height: 84vh;
+    overflow-y: auto;
+    padding: 14px 12px calc(16px + env(safe-area-inset-bottom));
+    background: var(--bg-secondary);
+    border-right: none;
+    border-top: 1px solid var(--border);
+    border-radius: 16px 16px 0 0;
+    transform: translateY(110%);
+    transition: transform 220ms ease;
+  }
+
+  .filter-panel.mobile-open {
+    transform: translateY(0);
+  }
+
+  .mobile-filter-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    font-family: var(--font-data);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .mobile-filter-header button {
+    min-height: 36px;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    font-family: var(--font-data);
+    font-size: 10px;
+    text-transform: uppercase;
+  }
+
+  .filter-status-option {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    margin-right: 8px;
+    margin-bottom: 8px;
+  }
+
+  .filter-status-option.active {
+    border-color: var(--accent-red);
+    background: rgba(193, 18, 31, 0.08);
+  }
+
+  .mobile-only {
+    display: block;
+  }
+
+  .desktop-only {
+    display: none;
+  }
+
+  .filter-status-segmented {
+    display: flex;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 3px;
+  }
+
+  .filter-segment {
+    flex: 1;
+    min-height: 36px;
+    border-radius: 6px;
+    font-family: var(--font-data);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+  }
+
+  .filter-segment.active {
+    background: var(--accent-red);
+    color: #fff;
+  }
+
+  .filter-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .mobile-value-badge {
+    min-width: 40px;
+    min-height: 22px;
+    padding: 0 8px;
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    font-size: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-range-slider {
+    width: 100%;
+    height: 4px;
+    margin-top: 6px;
+    margin-bottom: 8px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  .mobile-range-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent-red);
+    box-shadow: 0 0 0 4px rgba(193, 18, 31, 0.2);
+    border: none;
+  }
+
+  .mobile-range-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent-red);
+    box-shadow: 0 0 0 4px rgba(193, 18, 31, 0.2);
+    border: none;
+  }
+
+  .mobile-apply-btn {
+    display: block;
+    position: sticky;
+    bottom: 0;
+    width: 100%;
+    min-height: 46px;
+    margin-top: 12px;
+    background: var(--accent-red);
+    color: #fff;
+    font-family: var(--font-data);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .manga-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .manga-grid .manga-strip {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+  }
+
+  .manga-grid .strip-cover-col {
+    aspect-ratio: 3 / 4;
+  }
+
+  .manga-grid .strip-meta-col {
+    padding: 10px;
+  }
+
+  .manga-grid .strip-title {
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+
+  .manga-grid .strip-author {
+    font-size: 10px;
+    margin-bottom: 8px;
+  }
+
+  .manga-grid .strip-genres {
+    font-size: 9px;
+    margin-bottom: 8px;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .manga-grid .strip-stats {
+    gap: 6px;
+    font-size: 10px;
+    flex-wrap: wrap;
+  }
+
+  .manga-grid .strip-watchlist-col {
+    position: static;
+    margin: 2px 10px 10px;
+    justify-content: center;
+  }
+
+  .watchlist-compact {
+    min-height: 36px;
+    min-width: 100%;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    padding: 0 8px;
+  }
 }
