@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTheme } from './hooks/useTheme.js'
 
 import { useParams, Link } from 'react-router-dom'
@@ -13,6 +13,9 @@ export default function MangaDetailPage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [synopsisExpanded, setSynopsisExpanded] = useState(false)
+    const [isHeaderHidden, setIsHeaderHidden] = useState(false)
+    const lastScrollYRef = useRef(0)
+    const scrollFrameRef = useRef(null)
 
     useEffect(() => {
         setLoading(true)
@@ -25,14 +28,53 @@ export default function MangaDetailPage() {
             .finally(() => setLoading(false))
     }, [title])
 
-    if (loading) return <DetailSkeleton />
-    if (error) return <ErrorView message={error} />
+    useEffect(() => {
+        lastScrollYRef.current = window.scrollY || 0
+
+        const onScroll = () => {
+            if (scrollFrameRef.current != null) return
+
+            scrollFrameRef.current = window.requestAnimationFrame(() => {
+                const currentScrollY = window.scrollY || 0
+                const delta = currentScrollY - lastScrollYRef.current
+
+                if (currentScrollY <= 8) {
+                    setIsHeaderHidden(false)
+                } else if (delta > 10 && currentScrollY > 72) {
+                    setIsHeaderHidden(true)
+                } else if (delta < -4) {
+                    setIsHeaderHidden(false)
+                }
+
+                lastScrollYRef.current = currentScrollY
+                scrollFrameRef.current = null
+            })
+        }
+
+        window.addEventListener('scroll', onScroll, { passive: true })
+
+        return () => {
+            window.removeEventListener('scroll', onScroll)
+            if (scrollFrameRef.current != null) {
+                window.cancelAnimationFrame(scrollFrameRef.current)
+                scrollFrameRef.current = null
+            }
+        }
+    }, [])
+
+    useEffect(() => {
+        document.body.classList.toggle('header-hidden', isHeaderHidden)
+        return () => document.body.classList.remove('header-hidden')
+    }, [isHeaderHidden])
+
+    if (loading) return <DetailSkeleton headerHidden={isHeaderHidden} />
+    if (error) return <ErrorView message={error} headerHidden={isHeaderHidden} />
 
     const badgeLabel = manga.status ? manga.status : 'ONGOING';
 
     return (
         <>
-            <header className="site-header">
+            <header className={`site-header ${isHeaderHidden ? 'site-header-hidden' : ''}`}>
                 <div className="header-left">
                     <Link to="/" className="logo">
                         <span className="logo-manhwa">MANHWA</span>
@@ -147,11 +189,11 @@ export default function MangaDetailPage() {
     )
 }
 
-function DetailSkeleton() {
+function DetailSkeleton({ headerHidden = false }) {
     const { theme, toggleTheme, isDark } = useTheme()
     return (
         <>
-            <header className="site-header">
+            <header className={`site-header ${headerHidden ? 'site-header-hidden' : ''}`}>
                 <div className="header-left">
                     <Link to="/" className="logo">
                         <span className="logo-manhwa">MANHWA</span>
@@ -182,11 +224,11 @@ function DetailSkeleton() {
     )
 }
 
-function ErrorView({ message }) {
+function ErrorView({ message, headerHidden = false }) {
     const { theme, toggleTheme, isDark } = useTheme()
     return (
         <>
-            <header className="site-header">
+            <header className={`site-header ${headerHidden ? 'site-header-hidden' : ''}`}>
                 <div className="header-left">
                     <Link to="/" className="logo">
                         <span className="logo-manhwa">MANHWA</span>
