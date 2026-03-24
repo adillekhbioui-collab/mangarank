@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 export function AuthButton() {
@@ -94,6 +95,14 @@ export function AuthButton() {
                         <span className="auth-dropdown-email">{user.email}</span>
                     </div>
                     <hr className="auth-dropdown-divider" />
+                    <Link
+                        to="/profile"
+                        className="auth-dropdown-item"
+                        onClick={() => setMenuOpen(false)}
+                        style={{ textDecoration: 'none', display: 'block' }}
+                    >
+                        My Profile
+                    </Link>
                     <button
                         type="button"
                         className="auth-dropdown-item auth-dropdown-signout"
