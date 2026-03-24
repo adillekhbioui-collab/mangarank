@@ -9,6 +9,7 @@ import AdminPage from './pages/AdminPage.jsx'
 import GenreUniverseSection from './components/charts/GenreUniverseSection.jsx'
 import { WatchlistSection } from './components/WatchlistSection.jsx'
 import { WatchlistButton } from './components/WatchlistButton.jsx'
+import { AuthButton } from './components/AuthButton.jsx'
 
 const QUICK_FILTERS = [
     { label: '⭐ Masterpieces', category: 'masterpieces', apiCategory: 'completion-masterpieces', desc: 'High quality manga that most readers finish.' },
@@ -167,12 +168,12 @@ function UnifiedGenrePicker({
             const bActive = includeSet.has(b) || manualExcludeSet.has(b)
             const aDefault = !aActive && defaultExcludeSet.has(a)
             const bDefault = !bActive && defaultExcludeSet.has(b)
-            
+
             if (aActive && !bActive) return -1
             if (!aActive && bActive) return 1
             if (aDefault && !bDefault) return 1
             if (!aDefault && bDefault) return -1
-            
+
             return a.localeCompare(b)
         })
     }, [allGenres, includeSet, manualExcludeSet, defaultExcludeSet])
@@ -216,7 +217,7 @@ function UnifiedGenrePicker({
             )}
 
             <button className="genre-grid-toggle" onClick={() => setIsExpanded(!isExpanded)}>
-                {isExpanded ? 'HIDE GENRES' : 'SHOW ALL GENRES'} 
+                {isExpanded ? 'HIDE GENRES' : 'SHOW ALL GENRES'}
                 <span>{isExpanded ? '▲' : '▼'}</span>
             </button>
 
@@ -411,7 +412,7 @@ function HomePage({ initialTopTab = 'browse' }) {
         if (committed.length > 0) {
             track(
                 'search',
-                { query: committed.toLowerCase() },
+                { metadata: { query: committed.toLowerCase() } },
                 {
                     persist: true,
                 },
@@ -704,12 +705,12 @@ function HomePage({ initialTopTab = 'browse' }) {
                         <span className="logo-rank">RANK</span>
                     </Link>
                 </div>
-                
+
                 <div className="header-center">
                     <div className="nav-tabs">
-                        <span className={`nav-tab ${topTab === 'browse' && category==='' ? 'active' : ''}`} onClick={() => { setTopTab('browse'); handleQuickFilter('') }}>ALL</span>
-                        <span className={`nav-tab ${topTab === 'browse' && category==='manhwa' ? 'active' : ''}`} onClick={() => { setTopTab('browse'); handleQuickFilter('manhwa') }}>MANHWA</span>
-                        <span className={`nav-tab ${topTab === 'browse' && category==='manhua' ? 'active' : ''}`} onClick={() => { setTopTab('browse'); handleQuickFilter('manhua') }}>MANHUA</span>
+                        <span className={`nav-tab ${topTab === 'browse' && category === '' ? 'active' : ''}`} onClick={() => { setTopTab('browse'); handleQuickFilter('') }}>ALL</span>
+                        <span className={`nav-tab ${topTab === 'browse' && category === 'manhwa' ? 'active' : ''}`} onClick={() => { setTopTab('browse'); handleQuickFilter('manhwa') }}>MANHWA</span>
+                        <span className={`nav-tab ${topTab === 'browse' && category === 'manhua' ? 'active' : ''}`} onClick={() => { setTopTab('browse'); handleQuickFilter('manhua') }}>MANHUA</span>
                         <span className={`nav-tab ${topTab === 'charts' ? 'active' : ''}`} onClick={() => setTopTab('charts')}>CHARTS</span>
                         <span className={`nav-tab ${topTab === 'watchlist' ? 'active' : ''}`} onClick={() => setTopTab('watchlist')}>WATCHLIST</span>
                     </div>
@@ -726,9 +727,12 @@ function HomePage({ initialTopTab = 'browse' }) {
                         onBlur={commitSearch}
                         onKeyDown={handleSearchKeyDown}
                     />
-                    <button className="theme-toggle" onClick={toggleTheme}>
-                        {isDark ? '○ LIGHT' : '● DARK'}
-                    </button>
+                    <div className="header-actions">
+                        <AuthButton />
+                        <button className="theme-toggle" onClick={toggleTheme}>
+                            {isDark ? '○ LIGHT' : '● DARK'}
+                        </button>
+                    </div>
                 </div>
             </header>
 
@@ -800,241 +804,241 @@ function HomePage({ initialTopTab = 'browse' }) {
                     {isMobileFilterOpen && <div className="mobile-filter-backdrop" onClick={() => setIsMobileFilterOpen(false)} />}
 
                     <div className="main-layout">
-                {/* ── Filter Panel ── */}
-                <aside className={`filter-panel ${isMobileFilterOpen ? 'mobile-open' : ''}`}>
-                    <div className="mobile-filter-header">
-                        <span>Filters</span>
-                        <button type="button" onClick={() => setIsMobileFilterOpen(false)}>Close</button>
-                    </div>
-                    <UnifiedGenrePicker
-                        allGenres={genres}
-                        defaultExcludedGenres={defaultExcludedGenres}
-                        include={genreInclude}
-                        manualExclude={manualGenreExclude}
-                        onToggleState={(g) => {
-                            if (genreInclude.includes(g)) {
-                                if (manualGenreExclude.length >= MAX_EXCLUDE_GENRES) return;
-                                updateMainFilters({
-                                    genre_include: genreInclude.filter(x => x !== g),
-                                    genre_exclude: [...manualGenreExclude, g],
-                                    exclude_mode: 'custom'
-                                })
-                            } else if (manualGenreExclude.includes(g)) {
-                                updateMainFilters({
-                                    genre_exclude: manualGenreExclude.filter(x => x !== g),
-                                    exclude_mode: 'custom'
-                                })
-                            } else {
-                                if (genreInclude.length >= MAX_INCLUDE_GENRES) return;
-                                updateMainFilters({
-                                    genre_include: [...genreInclude, g]
-                                })
-                            }
-                        }}
-                        onClearAll={() => updateMainFilters({ genre_include: [], genre_exclude: [], exclude_mode: 'custom' })}
-                        maxInclude={MAX_INCLUDE_GENRES}
-                        maxExclude={MAX_EXCLUDE_GENRES}
-                    />
+                        {/* ── Filter Panel ── */}
+                        <aside className={`filter-panel ${isMobileFilterOpen ? 'mobile-open' : ''}`}>
+                            <div className="mobile-filter-header">
+                                <span>Filters</span>
+                                <button type="button" onClick={() => setIsMobileFilterOpen(false)}>Close</button>
+                            </div>
+                            <UnifiedGenrePicker
+                                allGenres={genres}
+                                defaultExcludedGenres={defaultExcludedGenres}
+                                include={genreInclude}
+                                manualExclude={manualGenreExclude}
+                                onToggleState={(g) => {
+                                    if (genreInclude.includes(g)) {
+                                        if (manualGenreExclude.length >= MAX_EXCLUDE_GENRES) return;
+                                        updateMainFilters({
+                                            genre_include: genreInclude.filter(x => x !== g),
+                                            genre_exclude: [...manualGenreExclude, g],
+                                            exclude_mode: 'custom'
+                                        })
+                                    } else if (manualGenreExclude.includes(g)) {
+                                        updateMainFilters({
+                                            genre_exclude: manualGenreExclude.filter(x => x !== g),
+                                            exclude_mode: 'custom'
+                                        })
+                                    } else {
+                                        if (genreInclude.length >= MAX_INCLUDE_GENRES) return;
+                                        updateMainFilters({
+                                            genre_include: [...genreInclude, g]
+                                        })
+                                    }
+                                }}
+                                onClearAll={() => updateMainFilters({ genre_include: [], genre_exclude: [], exclude_mode: 'custom' })}
+                                maxInclude={MAX_INCLUDE_GENRES}
+                                maxExclude={MAX_EXCLUDE_GENRES}
+                            />
 
-                    <div className="filter-section">
-                        <div className="filter-label">Status</div>
-                        <div className="filter-status-segmented mobile-only">
-                            {['', 'ongoing', 'completed'].map((v) => (
-                                <button
-                                    type="button"
-                                    key={`seg-${v || 'all'}`}
-                                    className={`filter-segment ${status === v ? 'active' : ''}`}
-                                    onClick={() => updateMainFilters({ status: v })}
-                                >
-                                    {v === '' ? 'ALL' : v}
-                                </button>
-                            ))}
-                        </div>
-
-                        <div className="desktop-only">
-                            {['', 'ongoing', 'completed'].map((v) => (
-                                <span
-                                    key={v}
-                                    className={`filter-status-option ${status === v ? 'active' : ''}`}
-                                    onClick={() => updateMainFilters({ status: v })}
-                                >
-                                    {v === '' ? 'ALL' : v}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="filter-section">
-                        <div className="filter-label">Sort By</div>
-                        <select className="filter-select" value={sortBy} onChange={(e) => updateMainFilters({ sort_by: e.target.value })}>
-                            <option value="score">Best Score</option>
-                            <option value="views">Most Popular</option>
-                            <option value="chapters">Most Chapters</option>
-                            <option value="completion">Completion Rate</option>
-                        </select>
-                    </div>
-
-                    <div className="filter-section" style={{ borderBottom: 'none' }}>
-                        <div className="filter-label filter-label-row">
-                            <span>Min Chapters</span>
-                            <span className="mobile-value-badge mobile-only">{minChapters}</span>
-                        </div>
-                        <input
-                            className="mobile-range-slider mobile-only"
-                            type="range"
-                            min="0"
-                            max="500"
-                            step="10"
-                            value={minChapters}
-                            onChange={(e) => handleMinChaptersChange(e.target.value)}
-                        />
-                        <input
-                            className="filter-number desktop-only"
-                            type="number"
-                            min="0"
-                            value={minChaptersInput}
-                            onFocus={() => { minCommitBaseRef.current = minChapters }}
-                            onChange={(e) => handleMinChaptersChange(e.target.value)}
-                            onBlur={commitMinChapters}
-                            onKeyDown={handleMinChaptersKeyDown}
-                        />
-                    </div>
-
-                    <button
-                        type="button"
-                        className="mobile-apply-btn"
-                        onClick={() => setIsMobileFilterOpen(false)}
-                    >
-                        APPLY FILTERS
-                    </button>
-                </aside>
-
-                {/* ── Main Content ── */}
-                <main className="content-area" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
-                    <div className="view-controls" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px', gap: '8px' }}>
-                        <button 
-                            className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
-                            onClick={() => setViewMode('list')}
-                        >
-                            LIST VIEW
-                        </button>
-                        <button 
-                            className={`view-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
-                            onClick={() => setViewMode('grid')}
-                        >
-                            GRID VIEW
-                        </button>
-                    </div>
-
-                    {loading && (
-                        <div className={viewMode === 'list' ? 'manga-list' : 'manga-grid'}>
-                            {Array.from({ length: 8 }).map((_, i) => (
-                                <div key={i} className="skeleton-strip" />
-                            ))}
-                        </div>
-                    )}
-
-                    {!loading && results.length === 0 && (
-                        <div style={{ padding: '48px', textAlign: 'center', fontFamily: 'var(--font-data)', color: 'var(--text-secondary)' }}>
-                            NO RESULTS FOUND.
-                        </div>
-                    )}
-
-                    {!loading && results.length > 0 && (
-                        <>
-                            <div className={viewMode === 'list' ? 'manga-list' : 'manga-grid'}>
-                                {results.map((m, i) => {
-                                    const rank = (page - 1) * LIMIT + i + 1;
-                                    const badgeLabel = m.status ? m.status : 'ONGOING';
-                                    let scoreColorClass = 'low';
-                                    if (m.aggregated_score >= 90) scoreColorClass = 'gold';
-                                    else if (m.aggregated_score >= 75) scoreColorClass = 'normal';
-                                    
-                                    return (
-                                        <Link
-                                            key={`${m.title}-${i}`}
-                                            to={`/manga/${encodeURIComponent(m.title)}`}
-                                            className="manga-strip"
-                                            onClick={() => {
-                                                track(
-                                                    'manga_click',
-                                                    {
-                                                        manga_title: m.title,
-                                                        metadata: {
-                                                            score: m.aggregated_score ?? null,
-                                                            rank,
-                                                        },
-                                                    },
-                                                    {
-                                                        persist: true,
-                                                    },
-                                                )
-                                            }}
+                            <div className="filter-section">
+                                <div className="filter-label">Status</div>
+                                <div className="filter-status-segmented mobile-only">
+                                    {['', 'ongoing', 'completed'].map((v) => (
+                                        <button
+                                            type="button"
+                                            key={`seg-${v || 'all'}`}
+                                            className={`filter-segment ${status === v ? 'active' : ''}`}
+                                            onClick={() => updateMainFilters({ status: v })}
                                         >
-                                            <div className="strip-rank-col">
-                                                <span className="strip-rank">{rank}</span>
-                                            </div>
-                                            <div className="strip-cover-col">
-                                                <img 
-                                                    className="strip-cover"
-                                                    src={m.cover_image
-                                                        ? `${API_BASE}/proxy/image?url=${encodeURIComponent(m.cover_image)}`
-                                                        : 'https://placehold.co/110x160/1C1822/3D3545?text=No+Cover'
-                                                    }
-                                                    alt={m.title}
-                                                    loading="lazy"
-                                                />
-                                            </div>
-                                            <div className="strip-meta-col">
-                                                <h3 className="strip-title">{m.title}</h3>
-                                                <div className="strip-author">{m.author || 'Unknown Author'}</div>
-                                                <div className="strip-genres">
-                                                    {(m.genres || []).slice(0, 4).join(' · ')}
-                                                </div>
-                                                <div className="strip-stats">
-                                                    <span>{m.chapter_count || 0} ch.</span>
-                                                    <span>|</span>
-                                                    <span>{m.total_views ? m.total_views.toLocaleString() : '0'} views</span>
-                                                    <span className={`strip-status ${badgeLabel.toLowerCase()}`}>{badgeLabel}</span>
-                                                </div>
-                                            </div>
-                                            <div className="strip-watchlist-col"><WatchlistButton manga={m} compact /></div>
-                                            <div className="strip-score-col">
-                                                <div className={`strip-score ${scoreColorClass}`}>
-                                                    {m.aggregated_score != null ? Math.round(m.aggregated_score) : '—'}
-                                                </div>
-                                                <div className="score-label">SCORE</div>
-                                            </div>
-                                        </Link>
-                                    );
-                                })}
+                                            {v === '' ? 'ALL' : v}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div className="desktop-only">
+                                    {['', 'ongoing', 'completed'].map((v) => (
+                                        <span
+                                            key={v}
+                                            className={`filter-status-option ${status === v ? 'active' : ''}`}
+                                            onClick={() => updateMainFilters({ status: v })}
+                                        >
+                                            {v === '' ? 'ALL' : v}
+                                        </span>
+                                    ))}
+                                </div>
                             </div>
 
-                            {!activeQuickFilter && totalPages > 1 && (
-                                <div className="pagination">
-                                    <button className="page-btn" disabled={page <= 1} onClick={() => updatePage(page - 1)}>
-                                        PREV
-                                    </button>
-                                    {getPageNumbers().map((p, i) =>
-                                        p === '...' ? (
-                                            <span key={`e${i}`} className="page-num ellipsis">…</span>
-                                        ) : (
-                                            <span key={p}
-                                                className={`page-num ${p === page ? 'active' : ''}`}
-                                                style={{cursor: 'pointer'}}
-                                                onClick={() => updatePage(p)}>
-                                                {p}
-                                            </span>
-                                        )
-                                    )}
-                                    <button className="page-btn" disabled={page >= totalPages} onClick={() => updatePage(Math.min(totalPages, page + 1))}>
-                                        NEXT
-                                    </button>
+                            <div className="filter-section">
+                                <div className="filter-label">Sort By</div>
+                                <select className="filter-select" value={sortBy} onChange={(e) => updateMainFilters({ sort_by: e.target.value })}>
+                                    <option value="score">Best Score</option>
+                                    <option value="views">Most Popular</option>
+                                    <option value="chapters">Most Chapters</option>
+                                    <option value="completion">Completion Rate</option>
+                                </select>
+                            </div>
+
+                            <div className="filter-section" style={{ borderBottom: 'none' }}>
+                                <div className="filter-label filter-label-row">
+                                    <span>Min Chapters</span>
+                                    <span className="mobile-value-badge mobile-only">{minChapters}</span>
+                                </div>
+                                <input
+                                    className="mobile-range-slider mobile-only"
+                                    type="range"
+                                    min="0"
+                                    max="500"
+                                    step="10"
+                                    value={minChapters}
+                                    onChange={(e) => handleMinChaptersChange(e.target.value)}
+                                />
+                                <input
+                                    className="filter-number desktop-only"
+                                    type="number"
+                                    min="0"
+                                    value={minChaptersInput}
+                                    onFocus={() => { minCommitBaseRef.current = minChapters }}
+                                    onChange={(e) => handleMinChaptersChange(e.target.value)}
+                                    onBlur={commitMinChapters}
+                                    onKeyDown={handleMinChaptersKeyDown}
+                                />
+                            </div>
+
+                            <button
+                                type="button"
+                                className="mobile-apply-btn"
+                                onClick={() => setIsMobileFilterOpen(false)}
+                            >
+                                APPLY FILTERS
+                            </button>
+                        </aside>
+
+                        {/* ── Main Content ── */}
+                        <main className="content-area" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
+                            <div className="view-controls" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px', gap: '8px' }}>
+                                <button
+                                    className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+                                    onClick={() => setViewMode('list')}
+                                >
+                                    LIST VIEW
+                                </button>
+                                <button
+                                    className={`view-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                                    onClick={() => setViewMode('grid')}
+                                >
+                                    GRID VIEW
+                                </button>
+                            </div>
+
+                            {loading && (
+                                <div className={viewMode === 'list' ? 'manga-list' : 'manga-grid'}>
+                                    {Array.from({ length: 8 }).map((_, i) => (
+                                        <div key={i} className="skeleton-strip" />
+                                    ))}
                                 </div>
                             )}
-                        </>
-                    )}
-                </main>
+
+                            {!loading && results.length === 0 && (
+                                <div style={{ padding: '48px', textAlign: 'center', fontFamily: 'var(--font-data)', color: 'var(--text-secondary)' }}>
+                                    NO RESULTS FOUND.
+                                </div>
+                            )}
+
+                            {!loading && results.length > 0 && (
+                                <>
+                                    <div className={viewMode === 'list' ? 'manga-list' : 'manga-grid'}>
+                                        {results.map((m, i) => {
+                                            const rank = (page - 1) * LIMIT + i + 1;
+                                            const badgeLabel = m.status ? m.status : 'ONGOING';
+                                            let scoreColorClass = 'low';
+                                            if (m.aggregated_score >= 90) scoreColorClass = 'gold';
+                                            else if (m.aggregated_score >= 75) scoreColorClass = 'normal';
+
+                                            return (
+                                                <Link
+                                                    key={`${m.title}-${i}`}
+                                                    to={`/manga/${encodeURIComponent(m.title)}`}
+                                                    className="manga-strip"
+                                                    onClick={() => {
+                                                        track(
+                                                            'manga_click',
+                                                            {
+                                                                manga_title: m.title,
+                                                                metadata: {
+                                                                    score: m.aggregated_score ?? null,
+                                                                    rank,
+                                                                },
+                                                            },
+                                                            {
+                                                                persist: true,
+                                                            },
+                                                        )
+                                                    }}
+                                                >
+                                                    <div className="strip-rank-col">
+                                                        <span className="strip-rank">{rank}</span>
+                                                    </div>
+                                                    <div className="strip-cover-col">
+                                                        <img
+                                                            className="strip-cover"
+                                                            src={m.cover_image
+                                                                ? `${API_BASE}/proxy/image?url=${encodeURIComponent(m.cover_image)}`
+                                                                : 'https://placehold.co/110x160/1C1822/3D3545?text=No+Cover'
+                                                            }
+                                                            alt={m.title}
+                                                            loading="lazy"
+                                                        />
+                                                    </div>
+                                                    <div className="strip-meta-col">
+                                                        <h3 className="strip-title">{m.title}</h3>
+                                                        <div className="strip-author">{m.author || 'Unknown Author'}</div>
+                                                        <div className="strip-genres">
+                                                            {(m.genres || []).slice(0, 4).join(' · ')}
+                                                        </div>
+                                                        <div className="strip-stats">
+                                                            <span>{m.chapter_count || 0} ch.</span>
+                                                            <span>|</span>
+                                                            <span>{m.total_views ? m.total_views.toLocaleString() : '0'} views</span>
+                                                            <span className={`strip-status ${badgeLabel.toLowerCase()}`}>{badgeLabel}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="strip-watchlist-col"><WatchlistButton manga={m} compact /></div>
+                                                    <div className="strip-score-col">
+                                                        <div className={`strip-score ${scoreColorClass}`}>
+                                                            {m.aggregated_score != null ? Math.round(m.aggregated_score) : '—'}
+                                                        </div>
+                                                        <div className="score-label">SCORE</div>
+                                                    </div>
+                                                </Link>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {!activeQuickFilter && totalPages > 1 && (
+                                        <div className="pagination">
+                                            <button className="page-btn" disabled={page <= 1} onClick={() => updatePage(page - 1)}>
+                                                PREV
+                                            </button>
+                                            {getPageNumbers().map((p, i) =>
+                                                p === '...' ? (
+                                                    <span key={`e${i}`} className="page-num ellipsis">…</span>
+                                                ) : (
+                                                    <span key={p}
+                                                        className={`page-num ${p === page ? 'active' : ''}`}
+                                                        style={{ cursor: 'pointer' }}
+                                                        onClick={() => updatePage(p)}>
+                                                        {p}
+                                                    </span>
+                                                )
+                                            )}
+                                            <button className="page-btn" disabled={page >= totalPages} onClick={() => updatePage(Math.min(totalPages, page + 1))}>
+                                                NEXT
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </main>
                     </div>
                 </>
             )}
