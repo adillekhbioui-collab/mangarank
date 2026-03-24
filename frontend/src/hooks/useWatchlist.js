@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { API_BASE } from '../api';
+import { trackAnalytics } from './useAnalytics.js';
 
 const STORAGE_KEY = 'manga_watchlist';
 
@@ -93,6 +94,7 @@ export function useWatchlist() {
   }, [watchlist]);
 
   const addOrUpdate = (title, mangaData, status) => {
+    const previousStatus = watchlist[title]?.status || null;
     const cover_url = resolveCoverUrl(mangaData);
 
     setWatchlist(prev => ({
@@ -105,14 +107,45 @@ export function useWatchlist() {
         updated_at: new Date().toISOString()
       }
     }));
+
+    if (!previousStatus) {
+      trackAnalytics(
+        'watchlist_add',
+        {
+          manga_title: title,
+          metadata: {
+            status,
+          },
+        },
+        {
+          persist: true,
+        },
+      );
+    }
   };
 
   const remove = (title) => {
+    const previousStatus = watchlist[title]?.status || null;
     setWatchlist(prev => {
       const next = { ...prev };
       delete next[title];
       return next;
     });
+
+    if (previousStatus) {
+      trackAnalytics(
+        'watchlist_remove',
+        {
+          manga_title: title,
+          metadata: {
+            from_status: previousStatus,
+          },
+        },
+        {
+          persist: true,
+        },
+      );
+    }
   };
 
   const getStatus = (title) => watchlist[title]?.status || null;

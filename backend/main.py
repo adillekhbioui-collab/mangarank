@@ -13,7 +13,7 @@ import math
 import csv
 from datetime import datetime, timedelta
 from typing import Optional
-from collections import Counter
+from collections import Counter, defaultdict
 from contextlib import asynccontextmanager
 from itertools import combinations
 
@@ -23,7 +23,7 @@ import httpx
 import uvicorn
 from PIL import Image
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Query, Response
+from fastapi import Depends, FastAPI, HTTPException, Query, Response, Header
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.concurrency import run_in_threadpool
@@ -33,6 +33,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+ADMIN_PASSWORD = (os.getenv("ADMIN_PASSWORD") or "").strip()
 
 
 def get_allowed_origins() -> list[str]:
@@ -100,6 +101,12 @@ async def sb_get(path: str, params: dict | None = None, count: bool = False) -> 
     return await http_client.get(url, headers=sb_headers(count), params=params)
 
 
+async def sb_post(path: str, payload: object) -> httpx.Response:
+    """Perform an async POST against the Supabase REST API."""
+    url = f"{SUPABASE_URL}/rest/v1/{path}"
+    return await http_client.post(url, headers=sb_headers(), json=payload)
+
+
 def parse_total(response: httpx.Response) -> int | None:
     """Extract total count from Supabase content-range header."""
     cr = response.headers.get("content-range", "")
@@ -118,15 +125,30 @@ CACHE_TTL = 600  # 10 minutes
 _genre_relationships_cache = {"data": None, "expires": None}
 
 
-def cache_get(key: str):
+def cache_get(key: str, ttl_override: int | None = None):
     entry = _cache.get(key)
-    if entry and (time.time() - entry[0]) < CACHE_TTL:
+    ttl = ttl_override if ttl_override is not None else CACHE_TTL
+    if entry and (time.time() - entry[0]) < ttl:
         return entry[1]
     return None
 
 
 def cache_set(key: str, value: object):
     _cache[key] = (time.time(), value)
+
+
+def require_admin(x_admin_password: Optional[str] = Header(default=None, alias="X-Admin-Password")):
+    if not ADMIN_PASSWORD:
+        raise HTTPException(status_code=503, detail="Admin endpoints are not configured.")
+    if not x_admin_password or x_admin_password != ADMIN_PASSWORD:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+async def count_query(path: str) -> int:
+    r = await sb_get(path, count=True)
+    if r.status_code not in (200, 206):
+        raise HTTPException(status_code=502, detail="Failed to fetch from Supabase.")
+    return parse_total(r) or 0
 
 
 async def compute_genre_relationships() -> dict:
@@ -251,6 +273,19 @@ GENRE_CATEGORIES = {
 }
 STATUS_CATEGORIES = {"completed", "ongoing"}
 BLACKLIST_CSV_PATH = os.path.join(os.path.dirname(__file__), "..", "genres_blacklist.csv")
+ANALYTICS_EVENT_TYPES = {
+    "search",
+    "manga_click",
+    "manga_view",
+    "filter_applied",
+    "watchlist_add",
+    "watchlist_remove",
+    "filter_genre",
+    "filter_status",
+    "filter_sort",
+    "category_view",
+    "genre_network_click",
+}
 
 
 def load_blacklisted_genres_from_csv() -> list[str]:
@@ -272,6 +307,383 @@ def load_blacklisted_genres_from_csv() -> list[str]:
                 out.add(genre)
 
     return sorted(out)
+
+
+async def fetch_event_rows(
+    event_type: str,
+    days: int,
+    select: str,
+    extra_filters: dict[str, str] | None = None,
+) -> list[dict]:
+    cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+    page_size = 1000
+    offset = 0
+    out: list[dict] = []
+    base_filters = {
+        "select": select,
+        "event_type": f"eq.{event_type}",
+        "created_at": f"gte.{cutoff}",
+    }
+
+    if extra_filters:
+        base_filters.update(extra_filters)
+
+    while True:
+        params = {
+            **base_filters,
+            "offset": str(offset),
+            "limit": str(page_size),
+        }
+        r = await sb_get("events", params=params)
+        if r.status_code not in (200, 206):
+            raise HTTPException(status_code=502, detail="Failed to fetch from Supabase.")
+
+        rows = r.json()
+        if not rows:
+            break
+        out.extend(rows)
+
+        if len(rows) < page_size:
+            break
+        offset += page_size
+
+    return out
+
+
+@app.post("/analytics/events", status_code=202)
+async def analytics_event_ingest(payload: dict):
+    event_type = str(payload.get("event_type") or "").strip()
+    if event_type not in ANALYTICS_EVENT_TYPES:
+        return {"accepted": False, "reason": "unsupported_event"}
+
+    session_id = str(payload.get("session_id") or "").strip()[:128] or None
+    manga_title = str(payload.get("manga_title") or "").strip()[:250] or None
+    genre = str(payload.get("genre") or "").strip()[:100] or None
+
+    filter_state = payload.get("filter_state")
+    if not isinstance(filter_state, dict):
+        filter_state = None
+
+    metadata = payload.get("metadata")
+    if not isinstance(metadata, dict):
+        metadata = None
+
+    body = {
+        "event_type": event_type,
+        "session_id": session_id,
+        "manga_title": manga_title,
+        "genre": genre,
+        "filter_state": filter_state,
+        "metadata": metadata,
+    }
+
+    try:
+        r = await sb_post("events", body)
+    except Exception:
+        return {"accepted": False, "reason": "network_error"}
+
+    if r.status_code not in (200, 201):
+        return {"accepted": False, "reason": "storage_error"}
+
+    return {"accepted": True}
+
+
+@app.get("/admin/stats", dependencies=[Depends(require_admin)])
+async def admin_stats(response: Response):
+    response.headers["Cache-Control"] = "private, max-age=60"
+
+    cached = cache_get("admin:stats", ttl_override=120)
+    if cached is not None:
+        return cached
+
+    total_count = await count_query("manga_rankings?select=id&limit=0")
+    unscored_count = await count_query("manga_rankings?select=id&aggregated_score=is.null&limit=0")
+    raw_count = await count_query("manga_raw?select=id&limit=0")
+
+    r_updated = await sb_get("manga_rankings?select=updated_at&order=updated_at.desc&limit=1")
+    if r_updated.status_code not in (200, 206):
+        raise HTTPException(status_code=502, detail="Failed to fetch from Supabase.")
+
+    last_updated = None
+    rows = r_updated.json()
+    if rows:
+        last_updated = rows[0].get("updated_at")
+
+    scored_count = max(0, total_count - unscored_count)
+    score_rate = round((scored_count / total_count) * 100, 1) if total_count else 0.0
+
+    result = {
+        "total_manga": total_count,
+        "scored_manga": scored_count,
+        "unscored_manga": unscored_count,
+        "score_rate_pct": score_rate,
+        "total_raw_records": raw_count,
+        "last_updated": last_updated,
+    }
+    cache_set("admin:stats", result)
+    return result
+
+
+@app.get("/admin/source-health", dependencies=[Depends(require_admin)])
+async def admin_source_health(response: Response):
+    response.headers["Cache-Control"] = "private, max-age=120"
+
+    cached = cache_get("admin:source-health", ttl_override=180)
+    if cached is not None:
+        return cached
+
+    sources = ["anilist", "mal", "mangadex", "kitsu"]
+    output = []
+
+    for source in sources:
+        total = await count_query(f"manga_raw?select=id&source_site=eq.{source}&limit=0")
+        null_rating = await count_query(
+            f"manga_raw?select=id&source_site=eq.{source}&rating=is.null&limit=0"
+        )
+        null_views = await count_query(
+            f"manga_raw?select=id&source_site=eq.{source}&view_count=is.null&limit=0"
+        )
+
+        output.append(
+            {
+                "source": source,
+                "total_records": total,
+                "null_rating_count": null_rating,
+                "null_rating_pct": round((null_rating / total) * 100, 1) if total else 0.0,
+                "null_views_count": null_views,
+                "null_views_pct": round((null_views / total) * 100, 1) if total else 0.0,
+            }
+        )
+
+    cache_set("admin:source-health", output)
+    return output
+
+
+@app.get("/admin/score-distribution", dependencies=[Depends(require_admin)])
+async def admin_score_distribution(response: Response):
+    response.headers["Cache-Control"] = "private, max-age=300"
+
+    cached = cache_get("admin:score-distribution", ttl_override=600)
+    if cached is not None:
+        return cached
+
+    buckets = []
+    for start in range(0, 100, 10):
+        end = 101 if start == 90 else start + 10
+        count = await count_query(
+            f"manga_rankings?select=id&aggregated_score=gte.{start}&aggregated_score=lt.{end}&limit=0"
+        )
+        buckets.append({"range": f"{start}-{start + 10}", "count": count})
+
+    cache_set("admin:score-distribution", buckets)
+    return buckets
+
+
+@app.get("/admin/coverage", dependencies=[Depends(require_admin)])
+async def admin_coverage(response: Response):
+    response.headers["Cache-Control"] = "private, max-age=300"
+
+    cached = cache_get("admin:coverage", ttl_override=900)
+    if cached is not None:
+        return cached
+
+    title_sources: dict[str, set[str]] = defaultdict(set)
+    offset = 0
+    page_size = 5000
+
+    while True:
+        query = f"manga_raw?select=title,source_site&offset={offset}&limit={page_size}"
+        r = await sb_get(query)
+        if r.status_code not in (200, 206):
+            raise HTTPException(status_code=502, detail="Failed to fetch from Supabase.")
+
+        rows = r.json()
+        if not rows:
+            break
+
+        for row in rows:
+            title = (row.get("title") or "").strip()
+            source = (row.get("source_site") or "").strip()
+            if title and source:
+                title_sources[title].add(source)
+
+        if len(rows) < page_size:
+            break
+        offset += page_size
+
+    distribution: dict[int, int] = defaultdict(int)
+    for sources in title_sources.values():
+        distribution[len(sources)] += 1
+
+    result = [
+        {"sources": source_count, "manga_count": count}
+        for source_count, count in sorted(distribution.items())
+    ]
+
+    cache_set("admin:coverage", result)
+    return result
+
+
+@app.get("/admin/analytics/searches", dependencies=[Depends(require_admin)])
+async def admin_analytics_searches(
+    response: Response,
+    days: int = Query(30, ge=1, le=365),
+    limit: int = Query(20, ge=1, le=100),
+):
+    response.headers["Cache-Control"] = "private, max-age=180"
+    cache_key = f"admin:analytics:searches:{days}:{limit}"
+    cached = cache_get(cache_key, ttl_override=300)
+    if cached is not None:
+        return cached
+
+    rows = await fetch_event_rows("search", days, "metadata")
+    counts: Counter = Counter()
+    for row in rows:
+        query = ((row.get("metadata") or {}).get("query") or "").strip().lower()
+        if query:
+            counts[query] += 1
+
+    result = [{"query": q, "count": c} for q, c in counts.most_common(limit)]
+    cache_set(cache_key, result)
+    return result
+
+
+@app.get("/admin/analytics/manga-views", dependencies=[Depends(require_admin)])
+async def admin_analytics_manga_views(
+    response: Response,
+    days: int = Query(30, ge=1, le=365),
+    limit: int = Query(20, ge=1, le=100),
+):
+    response.headers["Cache-Control"] = "private, max-age=180"
+    cache_key = f"admin:analytics:manga-views:{days}:{limit}"
+    cached = cache_get(cache_key, ttl_override=300)
+    if cached is not None:
+        return cached
+
+    rows = await fetch_event_rows(
+        "manga_view",
+        days,
+        "manga_title",
+        extra_filters={"manga_title": "not.is.null"},
+    )
+    counts: Counter = Counter()
+    for row in rows:
+        title = (row.get("manga_title") or "").strip()
+        if title:
+            counts[title] += 1
+
+    result = [{"title": t, "views": c} for t, c in counts.most_common(limit)]
+    cache_set(cache_key, result)
+    return result
+
+
+@app.get("/admin/analytics/filters", dependencies=[Depends(require_admin)])
+async def admin_analytics_filters(
+    response: Response,
+    days: int = Query(30, ge=1, le=365),
+    limit: int = Query(15, ge=1, le=100),
+):
+    response.headers["Cache-Control"] = "private, max-age=180"
+    cache_key = f"admin:analytics:filters:{days}:{limit}"
+    cached = cache_get(cache_key, ttl_override=300)
+    if cached is not None:
+        return cached
+
+    rows = await fetch_event_rows(
+        "filter_applied",
+        days,
+        "filter_state",
+        extra_filters={"filter_state": "not.is.null"},
+    )
+
+    combos: Counter = Counter()
+    for row in rows:
+        fs = row.get("filter_state") or {}
+        if not isinstance(fs, dict):
+            continue
+
+        parts = []
+        include = fs.get("genre_include") or []
+        if include:
+            parts.append(f"include:{','.join(include[:2])}")
+
+        status = fs.get("status")
+        if status and status != "all":
+            parts.append(f"status:{status}")
+
+        sort_by = fs.get("sort_by")
+        if sort_by and sort_by != "score":
+            parts.append(f"sort:{sort_by}")
+
+        if parts:
+            combos[" + ".join(parts)] += 1
+
+    result = [{"combination": k, "count": v} for k, v in combos.most_common(limit)]
+    cache_set(cache_key, result)
+    return result
+
+
+@app.get("/admin/analytics/watchlist", dependencies=[Depends(require_admin)])
+async def admin_analytics_watchlist(
+    response: Response,
+    days: int = Query(30, ge=1, le=365),
+):
+    response.headers["Cache-Control"] = "private, max-age=180"
+    cache_key = f"admin:analytics:watchlist:{days}"
+    cached = cache_get(cache_key, ttl_override=300)
+    if cached is not None:
+        return cached
+
+    cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+    page_size = 1000
+    offset = 0
+    rows: list[dict] = []
+
+    while True:
+        params = {
+            "select": "created_at,event_type,manga_title",
+            "event_type": "in.(watchlist_add,watchlist_remove)",
+            "created_at": f"gte.{cutoff}",
+            "order": "created_at.asc",
+            "offset": str(offset),
+            "limit": str(page_size),
+        }
+        r = await sb_get("events", params=params)
+        if r.status_code not in (200, 206):
+            raise HTTPException(status_code=502, detail="Failed to fetch from Supabase.")
+
+        batch = r.json()
+        if not batch:
+            break
+        rows.extend(batch)
+
+        if len(batch) < page_size:
+            break
+        offset += page_size
+
+    daily: dict[str, dict[str, int]] = defaultdict(lambda: {"adds": 0, "removes": 0})
+    top_added_counts: Counter = Counter()
+
+    for row in rows:
+        day = (row.get("created_at") or "")[:10]
+        event_type = row.get("event_type")
+        title = (row.get("manga_title") or "").strip()
+        if not day:
+            continue
+
+        if event_type == "watchlist_add":
+            daily[day]["adds"] += 1
+            if title:
+                top_added_counts[title] += 1
+        elif event_type == "watchlist_remove":
+            daily[day]["removes"] += 1
+
+    result = {
+        "daily": [{"date": d, **v} for d, v in sorted(daily.items())],
+        "top_added": [{"title": t, "count": c} for t, c in top_added_counts.most_common(10)],
+    }
+    cache_set(cache_key, result)
+    return result
 
 
 # ────────────────────────────────────────────────────────────

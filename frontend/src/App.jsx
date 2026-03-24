@@ -3,7 +3,9 @@ import { useTheme } from './hooks/useTheme.js'
 
 import { Routes, Route, Link, useSearchParams } from 'react-router-dom'
 import { fetchManga, fetchGenres, fetchBlacklistedGenres, fetchTopCategory, API_BASE } from './api'
+import { useAnalytics } from './hooks/useAnalytics.js'
 import MangaDetailPage from './MangaDetailPage.jsx'
+import AdminPage from './pages/AdminPage.jsx'
 import GenreUniverseSection from './components/charts/GenreUniverseSection.jsx'
 import { WatchlistSection } from './components/WatchlistSection.jsx'
 import { WatchlistButton } from './components/WatchlistButton.jsx'
@@ -261,6 +263,7 @@ function UnifiedGenrePicker({
 function HomePage({ initialTopTab = 'browse' }) {
     const [searchParams, setSearchParams] = useSearchParams()
     const { theme, toggleTheme, isDark } = useTheme()
+    const { track } = useAnalytics()
     const [topTab, setTopTab] = useState(initialTopTab)
     const [isHeaderHidden, setIsHeaderHidden] = useState(false)
 
@@ -298,6 +301,7 @@ function HomePage({ initialTopTab = 'browse' }) {
     const searchCommitBaseRef = useRef('')
     const minCommitBaseRef = useRef(0)
     const copyTimeoutRef = useRef(null)
+    const filterTrackReadyRef = useRef(false)
     const lastScrollYRef = useRef(0)
     const scrollFrameRef = useRef(null)
 
@@ -403,6 +407,17 @@ function HomePage({ initialTopTab = 'browse' }) {
     const commitSearch = () => {
         const committed = searchInput.trim()
         if (committed === searchCommitBaseRef.current) return
+
+        if (committed.length > 0) {
+            track(
+                'search',
+                { query: committed.toLowerCase() },
+                {
+                    persist: true,
+                },
+            )
+        }
+
         updateMainFilters({ search: committed }, 'push')
         searchCommitBaseRef.current = committed
     }
@@ -516,6 +531,32 @@ function HomePage({ initialTopTab = 'browse' }) {
         return () => document.body.classList.remove('header-hidden')
     }, [isHeaderHidden, isMobileFilterOpen])
 
+    useEffect(() => {
+        if (!filterTrackReadyRef.current) {
+            filterTrackReadyRef.current = true
+            return
+        }
+
+        if (isCategoryMode) return
+
+        track(
+            'filter_applied',
+            {
+                filter_state: {
+                    genre_include: genreInclude,
+                    genre_exclude: genreExclude,
+                    status: status || 'all',
+                    sort_by: sortBy,
+                    min_chapters: minChapters,
+                    search: search || '',
+                },
+            },
+            {
+                persist: true,
+            },
+        )
+    }, [genreInclude, genreExclude, status, sortBy, minChapters, search, isCategoryMode, track])
+
     // ── Fetch manga whenever URL filters change ──
     const loadManga = useCallback(async () => {
         setLoading(true)
@@ -596,6 +637,19 @@ function HomePage({ initialTopTab = 'browse' }) {
             applyURL({ ...DEFAULT_FILTERS }, 'push')
             return
         }
+
+        if (nextCategory) {
+            track(
+                'category_view',
+                {
+                    category: nextCategory,
+                },
+                {
+                    persist: false,
+                },
+            )
+        }
+
         updateCategory(nextCategory)
     }
 
@@ -901,6 +955,21 @@ function HomePage({ initialTopTab = 'browse' }) {
                                             key={`${m.title}-${i}`}
                                             to={`/manga/${encodeURIComponent(m.title)}`}
                                             className="manga-strip"
+                                            onClick={() => {
+                                                track(
+                                                    'manga_click',
+                                                    {
+                                                        manga_title: m.title,
+                                                        metadata: {
+                                                            score: m.aggregated_score ?? null,
+                                                            rank,
+                                                        },
+                                                    },
+                                                    {
+                                                        persist: true,
+                                                    },
+                                                )
+                                            }}
                                         >
                                             <div className="strip-rank-col">
                                                 <span className="strip-rank">{rank}</span>
@@ -1004,6 +1073,7 @@ export default function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/watchlist" element={<HomePage initialTopTab="watchlist" />} />
             <Route path="/manga/:title" element={<MangaDetailPage />} />
+            <Route path="/admin" element={<AdminPage />} />
         </Routes>
     )
 }
