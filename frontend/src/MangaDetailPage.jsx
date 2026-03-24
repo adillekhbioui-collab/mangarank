@@ -3,11 +3,13 @@ import { useTheme } from './hooks/useTheme.js'
 
 import { useParams, Link } from 'react-router-dom'
 import { fetchMangaByTitle, API_BASE } from './api'
+import { useAnalytics } from './hooks/useAnalytics.js'
 import SimilarManga from './SimilarManga.jsx'
 import { WatchlistButton } from './components/WatchlistButton.jsx'
 
 export default function MangaDetailPage() {
     const { theme, toggleTheme, isDark } = useTheme()
+    const { track } = useAnalytics()
     const { title } = useParams()
     const [manga, setManga] = useState(null)
     const [loading, setLoading] = useState(true)
@@ -66,6 +68,24 @@ export default function MangaDetailPage() {
         document.body.classList.toggle('header-hidden', isHeaderHidden)
         return () => document.body.classList.remove('header-hidden')
     }, [isHeaderHidden])
+
+    useEffect(() => {
+        if (!manga?.title) return
+
+        track(
+            'manga_view',
+            {
+                manga_title: manga.title,
+                metadata: {
+                    score: manga.aggregated_score ?? null,
+                    status: manga.status || null,
+                },
+            },
+            {
+                persist: true,
+            },
+        )
+    }, [manga, track])
 
     if (loading) return <DetailSkeleton headerHidden={isHeaderHidden} />
     if (error) return <ErrorView message={error} headerHidden={isHeaderHidden} />

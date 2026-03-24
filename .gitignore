@@ -23,3 +23,7 @@ dist/
 
 # IDE
 .vscode/
+
+# Environment variables
+frontend/.env.local
+frontend/.env.*.local
