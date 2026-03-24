@@ -178,6 +178,59 @@ async def admin_analytics_searches(
     return result
 
 
+@router.get("/analytics/users")
+async def admin_analytics_users(
+    response: Response,
+    days: int = Query(30, ge=1, le=365),
+):
+    response.headers["Cache-Control"] = "private, max-age=180"
+    cache_key = f"admin:analytics:users:{days}"
+    cached = deps.cache_get(cache_key, ttl_override=300)
+    if cached is not None:
+        return cached
+
+    cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+    page_size = 5000
+    offset = 0
+    sessions = set()
+    users = set()
+
+    while True:
+        params = {
+            "select": "session_id,user_id",
+            "created_at": f"gte.{cutoff}",
+            "offset": str(offset),
+            "limit": str(page_size),
+        }
+        r = await deps.sb_get("events", params=params)
+        if r.status_code not in (200, 206):
+            raise HTTPException(status_code=502, detail="Failed to fetch from Supabase.")
+
+        batch = r.json()
+        if not batch:
+            break
+        
+        for row in batch:
+            sid = row.get("session_id")
+            uid = row.get("user_id")
+            if sid:
+                sessions.add(sid)
+            if uid:
+                users.add(uid)
+
+        if len(batch) < page_size:
+            break
+        offset += page_size
+
+    result = {
+        "active_sessions": len(sessions),
+        "active_users": len(users),
+        "days": days
+    }
+    deps.cache_set(cache_key, result)
+    return result
+
+
 @router.get("/analytics/manga-views")
 async def admin_analytics_manga_views(
     response: Response,
