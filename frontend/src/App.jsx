@@ -6,6 +6,7 @@ import { fetchManga, fetchGenres, fetchBlacklistedGenres, fetchTopCategory, API_
 import { useAnalytics } from './hooks/useAnalytics.js'
 import MangaDetailPage from './MangaDetailPage.jsx'
 import AdminPage from './pages/AdminPage.jsx'
+import ProfilePage from './pages/ProfilePage.jsx'
 import GenreUniverseSection from './components/charts/GenreUniverseSection.jsx'
 import { WatchlistSection } from './components/WatchlistSection.jsx'
 import { WatchlistButton } from './components/WatchlistButton.jsx'
@@ -1078,6 +1079,7 @@ export default function App() {
             <Route path="/watchlist" element={<HomePage initialTopTab="watchlist" />} />
             <Route path="/manga/:title" element={<MangaDetailPage />} />
             <Route path="/admin" element={<AdminPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
         </Routes>
     )
 }

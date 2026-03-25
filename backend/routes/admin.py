@@ -178,59 +178,6 @@ async def admin_analytics_searches(
     return result
 
 
-@router.get("/analytics/users")
-async def admin_analytics_users(
-    response: Response,
-    days: int = Query(30, ge=1, le=365),
-):
-    response.headers["Cache-Control"] = "private, max-age=180"
-    cache_key = f"admin:analytics:users:{days}"
-    cached = deps.cache_get(cache_key, ttl_override=300)
-    if cached is not None:
-        return cached
-
-    cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
-    page_size = 5000
-    offset = 0
-    sessions = set()
-    users = set()
-
-    while True:
-        params = {
-            "select": "session_id,user_id",
-            "created_at": f"gte.{cutoff}",
-            "offset": str(offset),
-            "limit": str(page_size),
-        }
-        r = await deps.sb_get("events", params=params)
-        if r.status_code not in (200, 206):
-            raise HTTPException(status_code=502, detail="Failed to fetch from Supabase.")
-
-        batch = r.json()
-        if not batch:
-            break
-        
-        for row in batch:
-            sid = row.get("session_id")
-            uid = row.get("user_id")
-            if sid:
-                sessions.add(sid)
-            if uid:
-                users.add(uid)
-
-        if len(batch) < page_size:
-            break
-        offset += page_size
-
-    result = {
-        "active_sessions": len(sessions),
-        "active_users": len(users),
-        "days": days
-    }
-    deps.cache_set(cache_key, result)
-    return result
-
-
 @router.get("/analytics/manga-views")
 async def admin_analytics_manga_views(
     response: Response,
@@ -366,4 +313,86 @@ async def admin_analytics_watchlist(
         "top_added": [{"title": t, "count": c} for t, c in top_added_counts.most_common(10)],
     }
     deps.cache_set(cache_key, result)
+    return result
+
+
+@router.get("/analytics/users")
+async def admin_analytics_users(response: Response):
+    response.headers["Cache-Control"] = "private, max-age=300"
+    
+    cached = deps.cache_get("admin:analytics:users", ttl_override=600)
+    if cached is not None:
+        return cached
+
+    now = datetime.utcnow()
+    cutoff_30d = (now - timedelta(days=30)).isoformat()
+    
+    page_size = 5000
+    offset = 0
+    rows = []
+
+    while True:
+        params = {
+            "select": "created_at,user_id,session_id",
+            "created_at": f"gte.{cutoff_30d}",
+            "offset": str(offset),
+            "limit": str(page_size),
+        }
+        r = await deps.sb_get("events", params=params)
+        if r.status_code not in (200, 206):
+            raise HTTPException(status_code=502, detail="Failed to fetch from Supabase.")
+            
+        batch = r.json()
+        if not batch:
+            break
+        rows.extend(batch)
+        
+        if len(batch) < page_size:
+            break
+        offset += page_size
+
+    day_ago = now - timedelta(days=1)
+    week_ago = now - timedelta(days=7)
+    
+    dau_users, dau_sessions = set(), set()
+    wau_users, wau_sessions = set(), set()
+    mau_users, mau_sessions = set(), set()
+    
+    for row in rows:
+        dt_str = row.get("created_at", "")
+        if not dt_str:
+            continue
+        
+        # handle timezone safely
+        try:
+            dt = datetime.fromisoformat(dt_str.replace('Z', '+00:00')).replace(tzinfo=None)
+        except ValueError:
+            try:
+                dt = datetime.strptime(dt_str[:19], "%Y-%m-%dT%H:%M:%S")
+            except ValueError:
+                continue
+            
+        uid = row.get("user_id")
+        sid = row.get("session_id")
+        
+        if uid:
+            mau_users.add(uid)
+            if dt >= week_ago:
+                wau_users.add(uid)
+            if dt >= day_ago:
+                dau_users.add(uid)
+        elif sid:
+            mau_sessions.add(sid)
+            if dt >= week_ago:
+                wau_sessions.add(sid)
+            if dt >= day_ago:
+                dau_sessions.add(sid)
+
+    result = {
+        "dau": {"registered": len(dau_users), "anonymous": len(dau_sessions), "total": len(dau_users) + len(dau_sessions)},
+        "wau": {"registered": len(wau_users), "anonymous": len(wau_sessions), "total": len(wau_users) + len(wau_sessions)},
+        "mau": {"registered": len(mau_users), "anonymous": len(mau_sessions), "total": len(mau_users) + len(mau_sessions)}
+    }
+    
+    deps.cache_set("admin:analytics:users", result)
     return result

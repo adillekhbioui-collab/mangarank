@@ -6,6 +6,7 @@ import {
     fetchAdminAnalyticsMangaViews,
     fetchAdminAnalyticsSearches,
     fetchAdminAnalyticsWatchlist,
+    fetchAdminAnalyticsUsers,
     fetchAdminScoreDistribution,
     fetchAdminSourceHealth,
     fetchAdminStats,
@@ -266,6 +267,44 @@ function WatchlistWidget({ data }) {
     );
 }
 
+function UserAnalyticsWidget({ data }) {
+    if (!data) return null;
+    return (
+        <div className="admin-panel admin-panel-padded">
+            <WidgetHeader title="Active Users" period="Registered + Anonymous" />
+            <div className="admin-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '16px', marginTop: '12px' }}>
+                <div className="admin-kpi admin-kpi-good" style={{ padding: '12px' }}>
+                    <div className="admin-kpi-label">DAU (1d)</div>
+                    <div className="admin-kpi-value-wrap">
+                        <div className="admin-kpi-value" style={{ fontSize: '1.5rem' }}>{data.dau.total.toLocaleString()}</div>
+                    </div>
+                    <div className="admin-kpi-foot" style={{ marginTop: '4px' }}>
+                        <span className="admin-muted">{data.dau.registered} reg, {data.dau.anonymous} anon</span>
+                    </div>
+                </div>
+                <div className="admin-kpi admin-kpi-good" style={{ padding: '12px' }}>
+                    <div className="admin-kpi-label">WAU (7d)</div>
+                    <div className="admin-kpi-value-wrap">
+                        <div className="admin-kpi-value" style={{ fontSize: '1.5rem' }}>{data.wau.total.toLocaleString()}</div>
+                    </div>
+                    <div className="admin-kpi-foot" style={{ marginTop: '4px' }}>
+                        <span className="admin-muted">{data.wau.registered} reg, {data.wau.anonymous} anon</span>
+                    </div>
+                </div>
+                <div className="admin-kpi admin-kpi-good" style={{ padding: '12px' }}>
+                    <div className="admin-kpi-label">MAU (30d)</div>
+                    <div className="admin-kpi-value-wrap">
+                        <div className="admin-kpi-value" style={{ fontSize: '1.5rem' }}>{data.mau.total.toLocaleString()}</div>
+                    </div>
+                    <div className="admin-kpi-foot" style={{ marginTop: '4px' }}>
+                        <span className="admin-muted">{data.mau.registered} reg, {data.mau.anonymous} anon</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function UmamiWidget() {
     const shareUrl = import.meta.env.VITE_UMAMI_SHARE_URL || '';
     if (!shareUrl) {
@@ -341,6 +380,7 @@ export default function AdminDashboard({ adminPassword, onLogout }) {
     const [mostViewed, setMostViewed] = useState(null);
     const [popularFilters, setPopularFilters] = useState(null);
     const [watchlistData, setWatchlistData] = useState(null);
+    const [usersData, setUsersData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [lastFetch, setLastFetch] = useState(null);
@@ -362,6 +402,7 @@ export default function AdminDashboard({ adminPassword, onLogout }) {
             fetchAdminAnalyticsMangaViews(adminPassword),
             fetchAdminAnalyticsFilters(adminPassword),
             fetchAdminAnalyticsWatchlist(adminPassword),
+            fetchAdminAnalyticsUsers(adminPassword),
         ];
 
         const [
@@ -373,6 +414,7 @@ export default function AdminDashboard({ adminPassword, onLogout }) {
             viewedRes,
             filtersRes,
             watchlistRes,
+            usersRes,
         ] = await Promise.allSettled(calls);
         const nextErrors = {};
 
@@ -428,6 +470,12 @@ export default function AdminDashboard({ adminPassword, onLogout }) {
             nextErrors.watchlist = formatWidgetError(watchlistRes.reason, 'Watchlist analytics are unavailable right now.');
         }
 
+        if (usersRes.status === 'fulfilled') {
+            setUsersData(usersRes.value);
+        } else {
+            nextErrors.users = formatWidgetError(usersRes.reason, 'Active users metrics unavailable right now.');
+        }
+
         setErrors(nextErrors);
         setLastFetch(new Date());
         setLoading(false);
@@ -456,7 +504,7 @@ export default function AdminDashboard({ adminPassword, onLogout }) {
         return 'good';
     }, [stats, daysSinceUpdate]);
 
-    if (loading && !stats && !sourceHealth && !scoreDist && !coverage && !topSearches && !mostViewed && !popularFilters && !watchlistData) {
+    if (loading && !stats && !sourceHealth && !scoreDist && !coverage && !topSearches && !mostViewed && !popularFilters && !watchlistData && !usersData) {
         return (
             <div className="admin-shell">
                 <div className="admin-loading">BOOTING CONTROL ROOM...</div>
@@ -554,10 +602,12 @@ export default function AdminDashboard({ adminPassword, onLogout }) {
                 </motion.section>
 
                 <motion.section
+                    className="admin-grid-2"
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2, delay: 0.28 }}
                 >
+                    {usersData ? <UserAnalyticsWidget data={usersData} /> : <PanelError message={errors.users || 'Active users unavailabe.'} />}
                     <UmamiWidget />
                 </motion.section>
 
