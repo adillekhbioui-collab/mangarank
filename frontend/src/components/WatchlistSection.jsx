@@ -6,7 +6,7 @@ export function WatchlistSection({ onBrowseWatchlist }) {
   const { grouped, totalCount } = useWatchlist();
   const [activeStatus, setActiveStatus] = useState('reading');
   const [showAll, setShowAll] = useState(false);
-  
+
   const STATUS_META = {
     reading: { label: 'Currently reading', icon: '▶' },
     want_to_read: { label: 'Want to read', icon: '⊞' },
@@ -51,7 +51,7 @@ export function WatchlistSection({ onBrowseWatchlist }) {
   return (
     <section className="watchlist-section">
       <WatchlistSectionHeader totalCount={totalCount} />
-      
+
       <div className="watchlist-section-controls">
         <div className="watchlist-status-tabs">
           {Object.entries(STATUS_META).map(([key, meta]) => {

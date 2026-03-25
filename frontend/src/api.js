@@ -151,6 +151,10 @@ export function fetchAdminAnalyticsWatchlist(adminPassword, { days = 30 } = {}) 
     return fetchAdminJSON(`/admin/analytics/watchlist${qs ? `?${qs}` : ''}`, adminPassword);
 }
 
+export function fetchAdminAnalyticsUsers(adminPassword) {
+    return fetchAdminJSON(`/admin/analytics/users`, adminPassword);
+}
+
 // ── Module-level cache for similar manga (survives route navigation) ──
 const _similarCache = new Map();
 
