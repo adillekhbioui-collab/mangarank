@@ -4,7 +4,9 @@ backend/routes/analytics.py
 POST /analytics/events — ingest user-facing analytics events into Supabase.
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
+from pydantic import BaseModel, Field
+from typing import Optional, Dict, Any
 
 from backend import deps
 from backend.constants import ANALYTICS_EVENT_TYPES
@@ -12,43 +14,26 @@ from backend.constants import ANALYTICS_EVENT_TYPES
 router = APIRouter(tags=["analytics"])
 
 
+class AnalyticsPayload(BaseModel):
+    event_type: str = Field(..., max_length=50)
+    session_id: Optional[str] = Field(None, max_length=128)
+    user_id: Optional[str] = Field(
+        None, 
+        pattern=r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+    )
+    manga_title: Optional[str] = Field(None, max_length=250)
+    genre: Optional[str] = Field(None, max_length=100)
+    filter_state: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+
 @router.post("/analytics/events", status_code=202)
-async def analytics_event_ingest(payload: dict):
-    event_type = str(payload.get("event_type") or "").strip()
-    if event_type not in ANALYTICS_EVENT_TYPES:
+@deps.limiter.limit("60/minute")
+async def analytics_event_ingest(request: Request, payload: AnalyticsPayload):
+    if payload.event_type not in ANALYTICS_EVENT_TYPES:
         return {"accepted": False, "reason": "unsupported_event"}
 
-    session_id = str(payload.get("session_id") or "").strip()[:128] or None
-    manga_title = str(payload.get("manga_title") or "").strip()[:250] or None
-    genre = str(payload.get("genre") or "").strip()[:100] or None
-
-    # Accept user_id from authenticated clients (validated as UUID format)
-    import re
-    raw_user_id = str(payload.get("user_id") or "").strip()[:64] or None
-    user_id = None
-    if raw_user_id and re.match(
-        r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
-        raw_user_id, re.I,
-    ):
-        user_id = raw_user_id
-
-    filter_state = payload.get("filter_state")
-    if not isinstance(filter_state, dict):
-        filter_state = None
-
-    metadata = payload.get("metadata")
-    if not isinstance(metadata, dict):
-        metadata = None
-
-    body = {
-        "event_type": event_type,
-        "session_id": session_id,
-        "user_id": user_id,
-        "manga_title": manga_title,
-        "genre": genre,
-        "filter_state": filter_state,
-        "metadata": metadata,
-    }
+    body = payload.model_dump()
 
     try:
         r = await deps.sb_post("events", body)

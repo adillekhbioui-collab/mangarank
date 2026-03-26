@@ -8,10 +8,22 @@ import os
 import io
 import hashlib
 
-from fastapi import APIRouter, HTTPException, Response
+from urllib.parse import urlparse
+
+from fastapi import APIRouter, HTTPException, Response, Request
 from fastapi.responses import FileResponse
 from starlette.concurrency import run_in_threadpool
 from PIL import Image
+
+from backend import deps
+from backend.constants import IMAGE_CACHE_DIR
+
+ALLOWED_DOMAINS = {
+    "uploads.mangadex.org",
+    "s4.anilist.co",
+    "media.kitsu.io",
+    "media.kitsu.app",
+}
 
 from backend import deps
 from backend.constants import IMAGE_CACHE_DIR
@@ -41,10 +53,15 @@ def process_image(content: bytes, cache_path: str) -> None:
 
 
 @router.get("/proxy/image")
-async def proxy_image(url: str, response: Response):
+@deps.limiter.limit("200/minute")
+async def proxy_image(request: Request, url: str, response: Response):
     """Fetch, resize, cache, and serve optimized (300px WebP) cover images."""
     if not url:
         raise HTTPException(status_code=400, detail="Missing url parameter")
+
+    parsed = urlparse(url)
+    if parsed.netloc not in ALLOWED_DOMAINS:
+        raise HTTPException(status_code=403, detail="Domain not allowed")
 
     url_hash = hashlib.md5(url.encode()).hexdigest()
     cache_path = os.path.join(IMAGE_CACHE_DIR, f"{url_hash}.webp")
@@ -54,20 +71,27 @@ async def proxy_image(url: str, response: Response):
         response.headers["Cache-Control"] = "public, max-age=86400"
         return FileResponse(cache_path, media_type="image/webp")
 
-    # Fetch from source
+    # Fetch from source (streaming to enforce 5MB limit)
     try:
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-        r = await deps.http_client.get(url, headers=headers, timeout=10)
-        r.raise_for_status()
+        content = b""
+        async with deps.http_client.stream("GET", url, headers=headers, timeout=10) as r:
+            r.raise_for_status()
+            async for chunk in r.aiter_bytes():
+                content += chunk
+                if len(content) > 5 * 1024 * 1024:
+                    raise HTTPException(status_code=413, detail="Image exceeds 5MB limit")
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Proxy fetch failed for {url}: {e}")
         raise HTTPException(status_code=404, detail="Image not found")
 
     try:
-        await run_in_threadpool(process_image, r.content, cache_path)
+        await run_in_threadpool(process_image, content, cache_path)
         response.headers["Cache-Control"] = "public, max-age=86400"
         return FileResponse(cache_path, media_type="image/webp")
     except Exception as e:
         print(f"Error processing image {url}: {e}")
         # Fallback to original image bytes
-        return Response(content=r.content, media_type=r.headers.get("content-type", "image/jpeg"))
+        return Response(content=content, media_type=r.headers.get("content-type", "image/jpeg"))

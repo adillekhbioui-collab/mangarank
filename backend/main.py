@@ -44,6 +44,9 @@ async def lifespan(app: FastAPI):
     await client.aclose()
 
 
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+
 # ── FastAPI app + CORS ─────────────────────────────────────────
 app = FastAPI(
     title="Manhwa & Manhua Rankings API",
@@ -51,6 +54,9 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+app.state.limiter = deps.limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,

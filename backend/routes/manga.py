@@ -8,7 +8,8 @@ import math
 from collections import Counter
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query, Response
+import re
+from fastapi import APIRouter, HTTPException, Query, Response, Request
 
 from backend import deps
 from backend.constants import (
@@ -24,8 +25,14 @@ router = APIRouter(tags=["manga"])
 
 # ── GET /manga — paginated, filterable, sortable list ────────
 
+def sanitize_param(val: str) -> str:
+    """Strip characters that could manipulate PostgREST syntax."""
+    return re.sub(r'[&={}()*/]', '', val)
+
 @router.get("/manga")
+@deps.limiter.limit("100/minute")
 async def list_manga(
+    request: Request,
     response: Response,
     genre: Optional[str] = Query(None, description="Filter by single genre tag (legacy)."),
     genre_include: list[str] = Query([], description="Genres the manga MUST have (AND logic)."),
@@ -51,20 +58,22 @@ async def list_manga(
 
     # Legacy single genre (backwards compatible)
     if genre:
-        query += f"&genres=cs.{{{genre}}}"
+        query += f"&genres=cs.{{{sanitize_param(genre)}}}"
 
     # Multi-genre include: manga must contain ALL listed genres
     if genre_include:
-        csv = ",".join(genre_include)
+        clean_includes = [sanitize_param(g) for g in genre_include]
+        csv = ",".join(clean_includes)
         query += f"&genres=cs.{{{csv}}}"
 
     # Multi-genre exclude: manga must NOT overlap with ANY listed genre
     if genre_exclude:
-        csv = ",".join(genre_exclude)
+        clean_excludes = [sanitize_param(g) for g in genre_exclude]
+        csv = ",".join(clean_excludes)
         query += f"&genres=not.ov.{{{csv}}}"
 
     if author:
-        query += f"&author=ilike.*{author}*"
+        query += f"&author=ilike.*{sanitize_param(author)}*"
     if min_chapters is not None:
         query += f"&chapter_count=gte.{min_chapters}"
     if status:
@@ -89,7 +98,8 @@ async def list_manga(
 # ── GET /manga/{title}/similar — must be declared before /{title} ──
 
 @router.get("/manga/{title}/similar")
-async def get_similar_manga_endpoint(title: str, response: Response):
+@deps.limiter.limit("100/minute")
+async def get_similar_manga_endpoint(request: Request, title: str, response: Response):
     """Return up to 6 similar manga based on shared genres and score proximity."""
     response.headers["Cache-Control"] = "public, max-age=300"
 
@@ -114,7 +124,8 @@ async def get_similar_manga_endpoint(title: str, response: Response):
 # ── GET /manga/{title} — single record ───────────────────────
 
 @router.get("/manga/{title}")
-async def get_manga(title: str, response: Response):
+@deps.limiter.limit("100/minute")
+async def get_manga(request: Request, title: str, response: Response):
     """Return a single manga record by exact title match. Returns 404 if not found."""
     response.headers["Cache-Control"] = "public, max-age=600"
 
@@ -134,7 +145,8 @@ async def get_manga(title: str, response: Response):
 # ── GET /similar-manga/{title} — legacy alias ─────────────────
 
 @router.get("/similar-manga/{title}")
-async def get_similar_manga_new(title: str, response: Response):
+@deps.limiter.limit("100/minute")
+async def get_similar_manga_new(request: Request, title: str, response: Response):
     """Return up to 6 similar manga based on shared genres and score proximity."""
     response.headers["Cache-Control"] = "public, max-age=300"
 
@@ -158,7 +170,8 @@ async def get_similar_manga_new(title: str, response: Response):
 # ── GET /genres ───────────────────────────────────────────────
 
 @router.get("/genres")
-async def list_genres(response: Response):
+@deps.limiter.limit("60/minute")
+async def list_genres(request: Request, response: Response):
     """Return a sorted list of all unique genre strings across all manga_rankings records."""
     response.headers["Cache-Control"] = "public, max-age=600"
 
@@ -191,7 +204,8 @@ async def list_genres(response: Response):
 
 
 @router.get("/genres/blacklist")
-async def list_blacklisted_genres(response: Response):
+@deps.limiter.limit("60/minute")
+async def list_blacklisted_genres(request: Request, response: Response):
     """Return the current sorted blacklist genres from CSV (cached 10 min)."""
     response.headers["Cache-Control"] = "public, max-age=600"
 
@@ -205,7 +219,8 @@ async def list_blacklisted_genres(response: Response):
 
 
 @router.get("/genres/relationships")
-async def genres_relationships(response: Response):
+@deps.limiter.limit("60/minute")
+async def genres_relationships(request: Request, response: Response):
     response.headers["Cache-Control"] = "public, max-age=86400"
     return await deps.get_relationships_cached()
 
@@ -213,7 +228,8 @@ async def genres_relationships(response: Response):
 # ── GET /top/{category} ───────────────────────────────────────
 
 @router.get("/top/{category}")
-async def top_by_category(category: str, response: Response):
+@deps.limiter.limit("100/minute")
+async def top_by_category(request: Request, category: str, response: Response):
     """
     Return the top 20 manga for a category sorted by aggregated_score desc.
     Categories: action, romance, fantasy, drama, thriller, supernatural,
@@ -268,7 +284,8 @@ async def top_by_category(category: str, response: Response):
 # ── GET /stats ────────────────────────────────────────────────
 
 @router.get("/stats")
-async def stats(response: Response):
+@deps.limiter.limit("60/minute")
+async def stats(request: Request, response: Response):
     """Return summary stats: total manga, total sources, top 3 genres, and last updated time."""
     response.headers["Cache-Control"] = "public, max-age=600"
 

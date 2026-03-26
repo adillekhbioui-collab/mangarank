@@ -8,7 +8,7 @@ Auth is enforced at router level (single Depends call) rather than per-endpoint.
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, Request
 
 from backend import deps
 
@@ -20,7 +20,8 @@ router = APIRouter(
 
 
 @router.get("/stats")
-async def admin_stats(response: Response):
+@deps.limiter.limit("30/minute")
+async def admin_stats(request: Request, response: Response):
     response.headers["Cache-Control"] = "private, max-age=60"
 
     cached = deps.cache_get("admin:stats", ttl_override=120)
@@ -56,7 +57,8 @@ async def admin_stats(response: Response):
 
 
 @router.get("/source-health")
-async def admin_source_health(response: Response):
+@deps.limiter.limit("30/minute")
+async def admin_source_health(request: Request, response: Response):
     response.headers["Cache-Control"] = "private, max-age=120"
 
     cached = deps.cache_get("admin:source-health", ttl_override=180)
@@ -90,7 +92,8 @@ async def admin_source_health(response: Response):
 
 
 @router.get("/score-distribution")
-async def admin_score_distribution(response: Response):
+@deps.limiter.limit("30/minute")
+async def admin_score_distribution(request: Request, response: Response):
     response.headers["Cache-Control"] = "private, max-age=300"
 
     cached = deps.cache_get("admin:score-distribution", ttl_override=600)
@@ -110,7 +113,8 @@ async def admin_score_distribution(response: Response):
 
 
 @router.get("/coverage")
-async def admin_coverage(response: Response):
+@deps.limiter.limit("30/minute")
+async def admin_coverage(request: Request, response: Response):
     response.headers["Cache-Control"] = "private, max-age=300"
 
     cached = deps.cache_get("admin:coverage", ttl_override=900)
@@ -155,7 +159,9 @@ async def admin_coverage(response: Response):
 
 
 @router.get("/analytics/searches")
+@deps.limiter.limit("30/minute")
 async def admin_analytics_searches(
+    request: Request,
     response: Response,
     days: int = Query(30, ge=1, le=365),
     limit: int = Query(20, ge=1, le=100),
@@ -179,7 +185,9 @@ async def admin_analytics_searches(
 
 
 @router.get("/analytics/manga-views")
+@deps.limiter.limit("30/minute")
 async def admin_analytics_manga_views(
+    request: Request,
     response: Response,
     days: int = Query(30, ge=1, le=365),
     limit: int = Query(20, ge=1, le=100),
@@ -208,7 +216,9 @@ async def admin_analytics_manga_views(
 
 
 @router.get("/analytics/filters")
+@deps.limiter.limit("30/minute")
 async def admin_analytics_filters(
+    request: Request,
     response: Response,
     days: int = Query(30, ge=1, le=365),
     limit: int = Query(15, ge=1, le=100),
@@ -254,7 +264,9 @@ async def admin_analytics_filters(
 
 
 @router.get("/analytics/watchlist")
+@deps.limiter.limit("30/minute")
 async def admin_analytics_watchlist(
+    request: Request,
     response: Response,
     days: int = Query(30, ge=1, le=365),
 ):
@@ -317,7 +329,8 @@ async def admin_analytics_watchlist(
 
 
 @router.get("/analytics/users")
-async def admin_analytics_users(response: Response):
+@deps.limiter.limit("30/minute")
+async def admin_analytics_users(request: Request, response: Response):
     response.headers["Cache-Control"] = "private, max-age=300"
     
     cached = deps.cache_get("admin:analytics:users", ttl_override=600)

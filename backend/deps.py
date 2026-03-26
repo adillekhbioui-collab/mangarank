@@ -13,16 +13,19 @@ from datetime import datetime, timedelta
 from itertools import combinations
 from collections import Counter
 from typing import Optional
+import secrets
 
 import httpx
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, Header
 
 # ── Load environment ───────────────────────────────────────────
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_URL = (os.getenv("SUPABASE_URL") or "").strip()
+SUPABASE_KEY = (os.getenv("SUPABASE_KEY") or "").strip().replace("\n", "").replace("\r", "")
 ADMIN_PASSWORD = (os.getenv("ADMIN_PASSWORD") or "").strip()
 
 
@@ -37,6 +40,10 @@ def set_http_client(client: httpx.AsyncClient) -> None:
     """Called from main.py lifespan to inject the shared client."""
     global http_client
     http_client = client
+
+
+# ── Rate Limiter ───────────────────────────────────────────────
+limiter = Limiter(key_func=get_remote_address)
 
 
 # ── Supabase helpers ───────────────────────────────────────────
@@ -99,7 +106,7 @@ def require_admin(x_admin_password: Optional[str] = Header(default=None, alias="
     """FastAPI dependency: validates the X-Admin-Password header."""
     if not ADMIN_PASSWORD:
         raise HTTPException(status_code=503, detail="Admin endpoints are not configured.")
-    if not x_admin_password or x_admin_password != ADMIN_PASSWORD:
+    if not x_admin_password or not secrets.compare_digest(x_admin_password, ADMIN_PASSWORD):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 
