@@ -1,24 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <script>
-      (function() {
-        const storedTheme = localStorage.getItem('manhwarank-theme');
-        if (storedTheme === 'light' || (!storedTheme && window.matchMedia('(prefers-color-scheme: light)').matches)) {
-          document.documentElement.setAttribute('data-theme', 'light');
-        }
-      })();
-    </script>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ManhwaRank — Discover & Rank Manhwa</title>
-    <meta name="description" content="Discover and rank the best manhwa and manhua from MangaDex, AniList, and Kitsu." />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
-    <script defer src="https://manhwarank-umami.onrender.com/script.js" data-website-id="b7f83f73-adcb-4667-a938-5c425f7bbe84"></script>  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+
+<head>
+  <script>
+    (function () {
+      const storedTheme = localStorage.getItem('manhwarank-theme');
+      if (storedTheme === 'light' || (!storedTheme && window.matchMedia('(prefers-color-scheme: light)').matches)) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ManhwaRank — Discover & Rank Manhwa</title>
+  <meta name="description" content="Discover and rank the best manhwa and manhua from MangaDex, AniList, and Kitsu." />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://manhwarank.com/" />
+  <meta property="og:title" content="ManhwaRank — Discover & Rank Manhwa" />
+  <meta property="og:description"
+    content="Discover and rank the best manhwa and manhua from MangaDex, AniList, and Kitsu." />
+  <meta property="og:image" content="https://manhwarank.com/og-image.png" />
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="https://manhwarank.com/" />
+  <meta property="twitter:title" content="ManhwaRank — Discover & Rank Manhwa" />
+  <meta property="twitter:description"
+    content="Discover and rank the best manhwa and manhua from MangaDex, AniList, and Kitsu." />
+  <meta property="twitter:image" content="https://manhwarank.com/og-image.png" />
+
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap"
+    rel="stylesheet">
+  <script async src="https://manhwarank-umami.onrender.com/script.js"
+    data-website-id="b7f83f73-adcb-4667-a938-5c425f7bbe84"></script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
 </html>
