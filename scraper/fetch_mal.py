@@ -67,7 +67,7 @@ def safe_get(url, params=None, retries=3):
     print(f"Failed to fetch {url} after {retries} retries.")
     return None
 
-def extract_manga_data(node, target_subtype):
+def extract_manga_data(node, target_subtype, blacklisted_genres=None):
     media_type = node.get("media_type")
     if media_type != target_subtype:
         return None
@@ -121,6 +121,9 @@ def extract_manga_data(node, target_subtype):
         
     # Genres
     genres = [g.get("name") for g in node.get("genres", []) if g.get("name")]
+    
+    if blacklisted_genres and any(str(g).strip().title() in blacklisted_genres for g in genres if g):
+        return None
     
     # Chapter Count
     chapter_count = node.get("num_chapters") or 0
@@ -185,6 +188,18 @@ def main():
     parser.add_argument("--test", action="store_true", help="Run in test mode (max 200 records)")
     args = parser.parse_args()
     
+    import csv
+    csv_path = os.path.join(os.path.dirname(__file__), "..", "genres_blacklist.csv")
+    blacklisted_genres = set()
+    if os.path.exists(csv_path):
+        with open(csv_path, "r", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                flag = (row.get("Blacklisted") or row.get("blacklisted") or "").strip().lower()
+                genre = (row.get("Genre") or row.get("genre") or "").strip().title()
+                if genre and flag in {"yes", "true", "1", "y"}:
+                    blacklisted_genres.add(genre)
+    
     subtypes = ["manhwa", "manhua"]
     
     if RESUME_SUBTYPE in subtypes:
@@ -232,7 +247,7 @@ def main():
                 fetched = len(nodes)
                 
                 for node in nodes:
-                    record = extract_manga_data(node, target_subtype=subtype)
+                    record = extract_manga_data(node, target_subtype=subtype, blacklisted_genres=blacklisted_genres)
                     if record:
                         page_records.append(record)
                         

@@ -250,6 +250,12 @@ def clean_records(raw: list[dict]) -> tuple[list[dict], dict]:
             "cross_link_ids": cross_link_ids,
         }
 
+        # ── 10. Filter Blacklisted Genres ──
+        if any(str(g).strip().title() in blacklisted_genres for g in genres if g):
+            stats.setdefault("removed_blacklisted", 0)
+            stats["removed_blacklisted"] += 1
+            continue
+
         cleaned.append(cleaned_rec)
 
     stats["total_output"] = len(cleaned)
@@ -276,9 +282,21 @@ if __name__ == "__main__":
         print("  No records found in manga_raw. Run the fetchers first.")
         sys.exit(1)
 
+    import csv
+    csv_path = os.path.join(os.path.dirname(__file__), "..", "genres_blacklist.csv")
+    blacklisted_genres = set()
+    if os.path.exists(csv_path):
+        with open(csv_path, "r", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                flag = (row.get("Blacklisted") or row.get("blacklisted") or "").strip().lower()
+                genre = (row.get("Genre") or row.get("genre") or "").strip().title()
+                if genre and flag in {"yes", "true", "1", "y"}:
+                    blacklisted_genres.add(genre)
+
     # Clean
     print("\n  Cleaning records …")
-    cleaned, stats = clean_records(raw)
+    cleaned, stats = clean_records(raw, blacklisted_genres)
 
     # Save to JSON
     json_path = os.path.join(os.path.dirname(__file__), "cleaned.json")

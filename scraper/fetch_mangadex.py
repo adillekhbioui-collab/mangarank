@@ -206,7 +206,7 @@ def fetch_statistics(manga_id: str) -> tuple:
 #  Main fetch loop
 # ────────────────────────────────────────────────────────────
 
-def fetch_all_manga(max_items: int = 0) -> list[dict]:
+def fetch_all_manga(max_items: int = 0, blacklisted_genres: set = None) -> list[dict]:
     """Paginate through MangaDex and resolve details for each record."""
     all_records: list[dict] = []
     offset = 0
@@ -264,6 +264,10 @@ def fetch_all_manga(max_items: int = 0) -> list[dict]:
 
             # ── Genres ──
             genres = extract_genres(attrs)
+            
+            if blacklisted_genres and any(str(g).strip().title() in blacklisted_genres for g in genres if g):
+                continue
+
 
             # ── Rating & Statistics ──
             rating, rating_count, view_count = fetch_statistics(manga_id)
@@ -382,7 +386,19 @@ if __name__ == "__main__":
         max_items = 10
 
     # Fetch
-    records = fetch_all_manga(max_items=max_items)
+    import csv
+    csv_path = os.path.join(os.path.dirname(__file__), "..", "genres_blacklist.csv")
+    blacklisted_genres = set()
+    if os.path.exists(csv_path):
+        with open(csv_path, "r", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                flag = (row.get("Blacklisted") or row.get("blacklisted") or "").strip().lower()
+                genre = (row.get("Genre") or row.get("genre") or "").strip().title()
+                if genre and flag in {"yes", "true", "1", "y"}:
+                    blacklisted_genres.add(genre)
+
+    records = fetch_all_manga(max_items=max_items, blacklisted_genres=blacklisted_genres)
 
     # Save to JSON
     json_path = os.path.join(os.path.dirname(__file__), "mangadex_raw.json")

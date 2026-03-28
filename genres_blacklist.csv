@@ -1,5 +1,5 @@
 Genre,Blacklisted
-4-Koma,yes
+4-Koma,no
 Action,no
 Adaptation,no
 Adventure,no
@@ -29,7 +29,7 @@ Genderswap,yes
 Ghosts,no
 Girls' Love,yes
 Gore,no
-Gyaru,yes
+Gyaru,no
 Harem,no
 Hentai,yes
 Historical,no
@@ -42,7 +42,7 @@ Long Strip,no
 Mafia,no
 Magic,no
 Magical Girls,no
-Mahou Shoujo,no
+Mahou Shoujo,yes
 Martial Arts,no
 Mature,yes
 Mecha,no
@@ -67,7 +67,7 @@ Reverse Harem,yes
 Romance,no
 Samurai,no
 School,no
-School Life,yes
+School Life,no
 Sci-Fi,no
 Self-Published,no
 Sexual Violence,no
@@ -95,3 +95,8 @@ Wuxia,no
 Yaoi,yes
 Yuri,yes
 Zombies,no
+Memoir,no
+Organized Crime,no
+Otaku Culture,no
+Idols (Female),yes
+Idols (Male),yes

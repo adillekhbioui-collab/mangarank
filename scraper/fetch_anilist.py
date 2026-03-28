@@ -242,7 +242,7 @@ def upsert_to_supabase(records: list[dict]) -> int:
 #  Main fetch loop
 # ────────────────────────────────────────────────────────────
 
-def fetch_and_stream(test_mode: bool = False):
+def fetch_and_stream(test_mode: bool = False, blacklisted_genres: set = None):
     """
     Paginate through AniList for each country (KR, CN), process page
     by page, upsert immediately, and write to JSON incrementally.
@@ -327,6 +327,9 @@ def fetch_and_stream(test_mode: bool = False):
                     
                     # ── Genres ──
                     genres = media.get("genres", [])
+                    
+                    if blacklisted_genres and any(str(g).strip().title() in blacklisted_genres for g in genres if g):
+                        continue
                     
                     # ── Summary/Description ──
                     summary = media.get("description")
@@ -474,7 +477,19 @@ if __name__ == "__main__":
     
     test_mode = len(sys.argv) > 1 and sys.argv[1] == "--test"
     
-    total = fetch_and_stream(test_mode=test_mode)
+    import csv
+    csv_path = os.path.join(os.path.dirname(__file__), "..", "genres_blacklist.csv")
+    blacklisted_genres = set()
+    if os.path.exists(csv_path):
+        with open(csv_path, "r", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                flag = (row.get("Blacklisted") or row.get("blacklisted") or "").strip().lower()
+                genre = (row.get("Genre") or row.get("genre") or "").strip().title()
+                if genre and flag in {"yes", "true", "1", "y"}:
+                    blacklisted_genres.add(genre)
+
+    total = fetch_and_stream(test_mode=test_mode, blacklisted_genres=blacklisted_genres)
     
     elapsed = time.time() - start
     print(f"\n{'='*60}")
