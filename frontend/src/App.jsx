@@ -11,6 +11,11 @@ import GenreUniverseSection from './components/charts/GenreUniverseSection.jsx'
 import { WatchlistSection } from './components/WatchlistSection.jsx'
 import { WatchlistButton } from './components/WatchlistButton.jsx'
 import { AuthButton } from './components/AuthButton.jsx'
+import Footer from './components/Footer.jsx'
+import NotFound from './pages/NotFound.jsx'
+import Privacy from './pages/Privacy.jsx'
+import Terms from './pages/Terms.jsx'
+
 
 const QUICK_FILTERS = [
     { label: '⭐ Masterpieces', category: 'masterpieces', apiCategory: 'completion-masterpieces', desc: 'High quality manga that most readers finish.' },
@@ -1074,13 +1079,21 @@ function HomePage({ initialTopTab = 'browse' }) {
 
 export default function App() {
     return (
-        <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/watchlist" element={<HomePage initialTopTab="watchlist" />} />
-            <Route path="/manga/:title" element={<MangaDetailPage />} />
-            <Route path="/admin" element={<AdminPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-        </Routes>
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <Routes>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/watchlist" element={<HomePage initialTopTab="watchlist" />} />
+                    <Route path="/manga/:title" element={<MangaDetailPage />} />
+                    <Route path="/admin" element={<AdminPage />} />
+                    <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="/privacy" element={<Privacy />} />
+                    <Route path="/terms" element={<Terms />} />
+                    <Route path="*" element={<NotFound />} />
+                </Routes>
+            </div>
+            <Footer />
+        </div>
     )
 }
 
