@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { Fragment, useMemo } from 'react'
 import * as d3 from 'd3'
 
 export default function GenreHeatmap({ data, onBrowseGenres, mobile = false }) {
@@ -26,7 +26,7 @@ export default function GenreHeatmap({ data, onBrowseGenres, mobile = false }) {
                 <div />
                 {labels.map((g) => <div key={`x-${g}`} className="heatmap-x-label">{g.toUpperCase()}</div>)}
                 {labels.map((row) => (
-                    <>
+                    <Fragment key={`row-${row}`}>
                         <div key={`y-${row}`} className="heatmap-y-label">{row.toUpperCase()}</div>
                         {labels.map((col, i) => {
                             const diagonal = row === col
@@ -38,10 +38,11 @@ export default function GenreHeatmap({ data, onBrowseGenres, mobile = false }) {
                                     style={{ '--heat': diagonal ? 'var(--accent-red)' : colorScale(value), animationDelay: `${i * 0.02}s` }}
                                     onClick={() => onBrowseGenres(diagonal ? [row] : [row, col])}
                                     title={`${row} + ${col}: ${value.toLocaleString()}`}
+                                    aria-label={diagonal ? `Browse ${row}` : `Browse ${row} and ${col}`}
                                 />
                             )
                         })}
-                    </>
+                    </Fragment>
                 ))}
             </div>
         </div>

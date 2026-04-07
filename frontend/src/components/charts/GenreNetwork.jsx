@@ -181,7 +181,12 @@ export default function GenreNetwork({ data, onBrowseGenres, fullscreen = false 
             .attr('font-family', 'var(--font-data)')
             .attr('font-size', '9px')
             .attr('letter-spacing', '0.1em')
-            .style('pointer-events', 'none')
+            .style('pointer-events', 'all')
+            .style('cursor', 'pointer')
+            .on('click', (event, d) => {
+                event.stopPropagation()
+                onBrowseGenres([d.genre])
+            })
 
         nodeGroup.on('click', (event, d) => {
             event.stopPropagation()

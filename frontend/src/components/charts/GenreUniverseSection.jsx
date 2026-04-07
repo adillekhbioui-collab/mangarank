@@ -10,7 +10,14 @@ export default function GenreUniverseSection({ onBrowseGenres }) {
     const [error, setError] = useState(false)
     const [view, setView] = useState('network')
     const [fullscreen, setFullscreen] = useState(false)
-    const isMobile = window.matchMedia('(max-width: 767px)').matches
+    const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 767px)').matches)
+
+    useEffect(() => {
+        const media = window.matchMedia('(max-width: 767px)')
+        const onChange = (event) => setIsMobile(event.matches)
+        media.addEventListener('change', onChange)
+        return () => media.removeEventListener('change', onChange)
+    }, [])
 
     useEffect(() => {
         let mounted = true
@@ -34,6 +41,8 @@ export default function GenreUniverseSection({ onBrowseGenres }) {
     useEffect(() => {
         if (isMobile && view === 'network') setView('heatmap')
     }, [isMobile, view])
+
+    const hasData = (data?.nodes?.length || 0) > 0 && (data?.edges?.length || 0) > 0
 
     if (loading) {
         return (
@@ -71,6 +80,18 @@ export default function GenreUniverseSection({ onBrowseGenres }) {
         )
     }
 
+    if (!hasData) {
+        return (
+            <section className="genre-universe">
+                <GenreUniverseHeader totalGenres={data.meta?.total_genres} totalManga={data.meta?.total_manga} />
+                <div className="genre-universe-error">
+                    <span>No genre relationship data available yet.</span>
+                    <button onClick={() => onBrowseGenres([])}>Back to Browse</button>
+                </div>
+            </section>
+        )
+    }
+
     return (
         <section className="genre-universe">
             <GenreUniverseHeader totalGenres={data.meta?.total_genres} totalManga={data.meta?.total_manga} />
@@ -81,16 +102,25 @@ export default function GenreUniverseSection({ onBrowseGenres }) {
                         <button className={view === 'heatmap' ? 'active' : ''} onClick={() => setView('heatmap')}>○ Heatmap</button>
                     </div>
                 )}
-                <button className="fullscreen-toggle" onClick={() => setFullscreen(true)}>↗ Fullscreen</button>
+                {!isMobile && <button className="fullscreen-toggle" onClick={() => setFullscreen(true)}>↗ Fullscreen</button>}
             </div>
 
-            <div className={`genre-view-shell ${view === 'network' ? 'view-enter' : 'view-enter'}`}>
-                {(!isMobile && view === 'network') ? (
-                    <GenreNetwork data={data} onBrowseGenres={onBrowseGenres} />
-                ) : (
-                    <GenreHeatmap data={data} onBrowseGenres={onBrowseGenres} mobile={isMobile} />
-                )}
-            </div>
+            <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                    key={`${isMobile ? 'mobile' : 'desktop'}-${view}`}
+                    className={`genre-view-shell ${view === 'network' ? 'view-enter' : 'view-enter'}`}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.18 }}
+                >
+                    {(!isMobile && view === 'network') ? (
+                        <GenreNetwork data={data} onBrowseGenres={onBrowseGenres} />
+                    ) : (
+                        <GenreHeatmap data={data} onBrowseGenres={onBrowseGenres} mobile={isMobile} />
+                    )}
+                </motion.div>
+            </AnimatePresence>
 
             <AnimatePresence>
                 {fullscreen && (
