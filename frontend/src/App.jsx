@@ -854,12 +854,24 @@ function HomePage({ initialTopTab = 'browse' }) {
                     isHeaderHidden ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100',
                 ].join(' ')}
             >
-                <div className="flex h-14 items-center justify-between gap-3 px-3 sm:px-6">
-                    <div className="shrink-0">
-                        <Link to="/" className="flex items-center" onClick={() => updateMainFilters({}, 'push')}>
-                            <span className="font-serif text-xl font-bold text-text-primary">MANHWA</span>
-                            <span className="font-mono text-xl text-accent-red">RANK</span>
-                        </Link>
+                <div className="px-3 py-2 sm:px-6 md:flex md:h-14 md:items-center md:justify-between md:gap-3 md:py-0">
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="shrink-0">
+                            <Link to="/" className="flex items-center" onClick={() => updateMainFilters({}, 'push')}>
+                                <span className="font-serif text-[34px] font-bold leading-none text-text-primary md:text-xl">MANHWA</span>
+                                <span className="font-mono text-[34px] leading-none text-accent-red md:text-xl">RANK</span>
+                            </Link>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 md:hidden">
+                            <AuthButton />
+                            <button
+                                className="min-h-11 border border-border bg-surface px-2.5 py-1.5 font-mono text-[11px] tracking-[0.08em] text-text-secondary transition-colors hover:text-text-primary"
+                                onClick={toggleTheme}
+                            >
+                                {isDark ? '○ LIGHT' : '● DARK'}
+                            </button>
+                        </div>
                     </div>
 
                     <div className="hidden h-full items-center gap-6 md:flex">
@@ -900,9 +912,9 @@ function HomePage({ initialTopTab = 'browse' }) {
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="mt-2 flex items-center gap-2 md:mt-0">
                         <input
-                            className="w-[130px] border-b border-border bg-surface px-3 py-1.5 text-xs text-text-primary outline-none transition-colors placeholder:text-text-secondary focus:border-accent-red sm:w-[170px] md:w-[210px] lg:w-[260px]"
+                            className="h-11 w-full border-b border-border bg-surface px-3 py-1.5 text-sm text-text-primary outline-none transition-colors placeholder:text-text-secondary focus:border-accent-red md:h-auto md:w-[210px] md:text-xs lg:w-[260px]"
                             type="text"
                             placeholder="Search titles..."
                             value={searchInput}
@@ -911,7 +923,7 @@ function HomePage({ initialTopTab = 'browse' }) {
                             onBlur={commitSearch}
                             onKeyDown={handleSearchKeyDown}
                         />
-                        <div className="flex items-center gap-1.5">
+                        <div className="hidden items-center gap-1.5 md:flex">
                             <AuthButton />
                             <button
                                 className="border border-border bg-surface px-2.5 py-1.5 font-mono text-[11px] tracking-[0.08em] text-text-secondary transition-colors hover:text-text-primary"
@@ -962,7 +974,7 @@ function HomePage({ initialTopTab = 'browse' }) {
                         </div>
                     )}
 
-                    <div className="mobile-filter-toolbar sticky top-14 z-40 flex items-center justify-between gap-2 border-b border-border bg-background/95 px-3 py-2 backdrop-blur-sm lg:hidden">
+                    <div className="mobile-filter-toolbar sticky top-[88px] z-40 flex items-center justify-between gap-2 border-b border-border bg-background/95 px-3 py-2 backdrop-blur-sm md:top-14 lg:hidden">
                         <button
                             type="button"
                             className="mobile-filter-btn relative inline-flex h-11 items-center justify-center gap-2 border border-accent-red bg-elevated px-3 font-mono text-xs tracking-[0.12em] text-text-primary"
@@ -1032,7 +1044,7 @@ function HomePage({ initialTopTab = 'browse' }) {
                         </aside>
 
                         {/* ── Main Content ── */}
-                        <main className="content-area min-w-0 flex-1" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
+                        <main className="content-area min-w-0 flex-1 pb-20 lg:pb-0" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
                             <div className="view-controls mb-4 hidden justify-end gap-2 lg:flex">
                                 <button
                                     className={`view-toggle-btn h-10 border border-border px-3 font-mono text-xs tracking-[0.12em] ${viewMode === 'list' ? 'active bg-elevated text-text-primary' : 'bg-surface text-text-secondary'}`}
@@ -1134,7 +1146,7 @@ function HomePage({ initialTopTab = 'browse' }) {
 
             {topTab === 'charts' && (
                 <div className="main-layout relative mx-auto flex w-full max-w-[1600px] gap-4 px-3 py-3 md:px-6 md:py-6">
-                    <main className="content-area min-w-0 flex-1">
+                    <main className="content-area min-w-0 flex-1 pb-20 lg:pb-0">
                         <GenreUniverseSection
                             onBrowseGenres={(nextGenres) => {
                                 setTopTab('browse')
@@ -1151,11 +1163,40 @@ function HomePage({ initialTopTab = 'browse' }) {
 
             {topTab === 'watchlist' && (
                 <div className="main-layout relative mx-auto flex w-full max-w-[1600px] gap-4 px-3 py-3 md:px-6 md:py-6">
-                    <main className="content-area min-w-0 flex-1">
+                    <main className="content-area min-w-0 flex-1 pb-20 lg:pb-0">
                         <WatchlistSection />
                     </main>
                 </div>
             )}
+
+            <nav
+                className="fixed inset-x-0 bottom-0 z-[90] border-t border-border bg-background/95 px-3 pt-2 backdrop-blur-md lg:hidden"
+                style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)' }}
+            >
+                <div className="mx-auto grid max-w-[560px] grid-cols-3 gap-2">
+                    <button
+                        type="button"
+                        className={`min-h-11 border px-2 font-mono text-[11px] tracking-[0.1em] ${topTab === 'browse' ? 'border-accent-red bg-elevated text-text-primary' : 'border-border bg-surface text-text-secondary'}`}
+                        onClick={() => setTopTab('browse')}
+                    >
+                        BROWSE
+                    </button>
+                    <button
+                        type="button"
+                        className={`min-h-11 border px-2 font-mono text-[11px] tracking-[0.1em] ${topTab === 'charts' ? 'border-accent-red bg-elevated text-text-primary' : 'border-border bg-surface text-text-secondary'}`}
+                        onClick={() => setTopTab('charts')}
+                    >
+                        CHARTS
+                    </button>
+                    <button
+                        type="button"
+                        className={`min-h-11 border px-2 font-mono text-[11px] tracking-[0.1em] ${topTab === 'watchlist' ? 'border-accent-red bg-elevated text-text-primary' : 'border-border bg-surface text-text-secondary'}`}
+                        onClick={() => setTopTab('watchlist')}
+                    >
+                        WATCHLIST
+                    </button>
+                </div>
+            </nav>
         </>
     )
 }
