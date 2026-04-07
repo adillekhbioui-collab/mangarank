@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useTheme } from './hooks/useTheme.js'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 
 import { Routes, Route, Link, useSearchParams } from 'react-router-dom'
 import { fetchManga, fetchGenres, fetchBlacklistedGenres, fetchTopCategory, API_BASE } from './api'
@@ -189,53 +190,73 @@ function UnifiedGenrePicker({
         : sortedGenres
 
     return (
-        <div className="filter-section">
-            <div className="filter-header-row">
-                <div className="filter-label" style={{ marginBottom: 0 }}>GENRES</div>
+        <div className="filter-section border-b border-border py-3">
+            <div className="filter-header-row mb-2 flex items-center justify-between">
+                <div className="filter-label mb-0 font-mono text-[11px] uppercase tracking-[0.12em] text-text-secondary">Genres</div>
                 {hasActiveFilters && (
-                    <span className="clear-all-link" onClick={onClearAll}>Clear all</span>
+                    <button
+                        type="button"
+                        className="clear-all-link font-mono text-[10px] uppercase tracking-[0.1em] text-accent-red"
+                        onClick={onClearAll}
+                    >
+                        Clear all
+                    </button>
                 )}
             </div>
 
             {hasActiveFilters && (
-                <div className="genres-summary">
+                <div className="genres-summary mb-2 space-y-1">
                     {include.length > 0 && (
-                        <div className="genres-summary-line">
-                            <span className="genres-summary-label">INCLUDE:</span>
+                        <div className="genres-summary-line flex flex-wrap items-center gap-1.5">
+                            <span className="genres-summary-label font-mono text-[10px] uppercase tracking-[0.08em] text-text-ghost">Include:</span>
                             {include.map(g => (
-                                <span key={g} className="summary-tag include" onClick={() => onToggleState(g)}>
+                                <button
+                                    key={g}
+                                    type="button"
+                                    className="summary-tag include rounded border border-accent-gold/40 px-1.5 py-0.5 text-[10px] text-accent-gold"
+                                    onClick={() => onToggleState(g)}
+                                >
                                     {g} <span className="remove">×</span>
-                                </span>
+                                </button>
                             ))}
                         </div>
                     )}
                     {manualExclude.length > 0 && (
-                        <div className="genres-summary-line">
-                            <span className="genres-summary-label">EXCLUDE:</span>
+                        <div className="genres-summary-line flex flex-wrap items-center gap-1.5">
+                            <span className="genres-summary-label font-mono text-[10px] uppercase tracking-[0.08em] text-text-ghost">Exclude:</span>
                             {manualExclude.map(g => (
-                                <span key={g} className="summary-tag exclude" onClick={() => onToggleState(g)}>
+                                <button
+                                    key={g}
+                                    type="button"
+                                    className="summary-tag exclude rounded border border-accent-red/40 px-1.5 py-0.5 text-[10px] text-accent-red"
+                                    onClick={() => onToggleState(g)}
+                                >
                                     {g} <span className="remove">×</span>
-                                </span>
+                                </button>
                             ))}
                         </div>
                     )}
                 </div>
             )}
 
-            <button className="genre-grid-toggle" onClick={() => setIsExpanded(!isExpanded)}>
-                {isExpanded ? 'HIDE GENRES' : 'SHOW ALL GENRES'}
+            <button
+                type="button"
+                className="genre-grid-toggle flex h-11 w-full items-center justify-between border border-border bg-surface px-3 font-mono text-[11px] uppercase tracking-[0.12em] text-text-secondary"
+                onClick={() => setIsExpanded(!isExpanded)}
+            >
+                {isExpanded ? 'Hide Genres' : 'Show All Genres'}
                 <span>{isExpanded ? '▲' : '▼'}</span>
             </button>
 
             {isExpanded && (
-                <div className="genre-grid-container">
+                <div className="genre-grid-container mt-2">
                     <input
-                        className="genre-grid-search"
+                        className="genre-grid-search h-10 w-full border border-border bg-surface px-3 text-sm text-text-primary placeholder:text-text-ghost"
                         placeholder="Filter genres..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
-                    <div className="genre-grid">
+                    <div className="genre-grid mt-2 grid max-h-[34vh] grid-cols-2 gap-1.5 overflow-y-auto pr-1 md:max-h-[46vh] md:grid-cols-1 lg:grid-cols-2">
                         {filteredGenres.map(g => {
                             let stateClass = 'neutral'
                             let prefix = ''
@@ -244,23 +265,36 @@ function UnifiedGenrePicker({
                                 prefix = '+ '
                             } else if (manualExcludeSet.has(g)) {
                                 stateClass = 'exclude'
-                                prefix = '– '
+                                prefix = '− '
                             } else if (defaultExcludeSet.has(g)) {
                                 stateClass = 'default-exclude'
-                                prefix = '– '
+                                prefix = '− '
                             }
 
+                            const chipTone =
+                                stateClass === 'include'
+                                    ? 'border-accent-gold/45 text-accent-gold bg-accent-gold/5'
+                                    : stateClass === 'exclude'
+                                        ? 'border-accent-red/45 text-accent-red bg-accent-red/5'
+                                        : stateClass === 'default-exclude'
+                                            ? 'border-border text-text-ghost bg-background'
+                                            : 'border-border text-text-secondary bg-surface'
+
                             return (
-                                <div
+                                <button
                                     key={g}
-                                    className={`genre-chip ${stateClass}`}
+                                    type="button"
+                                    className={`genre-chip min-h-11 rounded border px-2 py-1 text-left text-[11px] leading-tight ${chipTone}`}
                                     onClick={() => onToggleState(g)}
                                     title={stateClass === 'default-exclude' ? 'Excluded by default (click to include)' : ''}
                                 >
                                     {prefix}{g}
-                                </div>
+                                </button>
                             )
                         })}
+                    </div>
+                    <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.08em] text-text-ghost">
+                        Include max: {maxInclude} • Exclude max: {maxExclude}
                     </div>
                 </div>
             )}
@@ -304,6 +338,7 @@ function HomePage({ initialTopTab = 'browse' }) {
     const [minChaptersInput, setMinChaptersInput] = useState('0')
     const [copied, setCopied] = useState(false)
     const [categoryTooltip, setCategoryTooltip] = useState(null)
+    const reduceMotion = useReducedMotion()
 
     const searchCommitBaseRef = useRef('')
     const minCommitBaseRef = useRef(0)
@@ -702,6 +737,114 @@ function HomePage({ initialTopTab = 'browse' }) {
         return pages
     }
 
+    const filterPanelInner = (
+        <>
+            <UnifiedGenrePicker
+                allGenres={genres}
+                defaultExcludedGenres={defaultExcludedGenres}
+                include={genreInclude}
+                manualExclude={manualGenreExclude}
+                onToggleState={(g) => {
+                    if (genreInclude.includes(g)) {
+                        if (manualGenreExclude.length >= MAX_EXCLUDE_GENRES) return;
+                        updateMainFilters({
+                            genre_include: genreInclude.filter(x => x !== g),
+                            genre_exclude: [...manualGenreExclude, g],
+                            exclude_mode: 'custom'
+                        })
+                    } else if (manualGenreExclude.includes(g)) {
+                        updateMainFilters({
+                            genre_exclude: manualGenreExclude.filter(x => x !== g),
+                            exclude_mode: 'custom'
+                        })
+                    } else {
+                        if (genreInclude.length >= MAX_INCLUDE_GENRES) return;
+                        updateMainFilters({
+                            genre_include: [...genreInclude, g]
+                        })
+                    }
+                }}
+                onClearAll={() => updateMainFilters({ genre_include: [], genre_exclude: [], exclude_mode: 'custom' })}
+                maxInclude={MAX_INCLUDE_GENRES}
+                maxExclude={MAX_EXCLUDE_GENRES}
+            />
+
+            <div className="filter-section border-b border-border py-3">
+                <div className="filter-label mb-2 font-mono text-[11px] uppercase tracking-[0.12em] text-text-secondary">Status</div>
+                <div className="grid grid-cols-3 gap-1.5 lg:hidden">
+                    {['', 'ongoing', 'completed'].map((v) => (
+                        <button
+                            type="button"
+                            key={`seg-${v || 'all'}`}
+                            className={`filter-segment min-h-11 border border-border px-2 py-2 font-mono text-[11px] tracking-[0.08em] ${status === v ? 'active bg-background text-text-primary' : 'text-text-secondary'}`}
+                            onClick={() => updateMainFilters({ status: v })}
+                        >
+                            {v === '' ? 'ALL' : v}
+                        </button>
+                    ))}
+                </div>
+
+                <div className="desktop-only">
+                    {['', 'ongoing', 'completed'].map((v) => (
+                        <span
+                            key={v}
+                            className={`filter-status-option cursor-pointer font-mono text-xs tracking-[0.08em] ${status === v ? 'active text-text-primary' : 'text-text-secondary'}`}
+                            onClick={() => updateMainFilters({ status: v })}
+                        >
+                            {v === '' ? 'ALL' : v}
+                        </span>
+                    ))}
+                </div>
+            </div>
+
+            <div className="filter-section border-b border-border py-3">
+                <div className="filter-label mb-2 font-mono text-[11px] uppercase tracking-[0.12em] text-text-secondary">Sort By</div>
+                <select className="filter-select h-11 w-full border border-border bg-surface px-3 text-sm text-text-primary" value={sortBy} onChange={(e) => updateMainFilters({ sort_by: e.target.value })}>
+                    <option value="score">Best Score</option>
+                    <option value="views">Most Popular</option>
+                    <option value="chapters">Most Chapters</option>
+                    <option value="completion">Completion Rate</option>
+                </select>
+            </div>
+
+            <div className="filter-section py-3" style={{ borderBottom: 'none' }}>
+                <div className="filter-label filter-label-row mb-2 flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.12em] text-text-secondary">
+                    <span>Min Chapters</span>
+                    <span className="mobile-value-badge rounded bg-background px-2 py-0.5 text-[10px] text-text-primary lg:hidden">{minChapters}</span>
+                </div>
+                <input
+                    className="mobile-range-slider w-full accent-[#C1121F] lg:hidden"
+                    type="range"
+                    min="0"
+                    max="500"
+                    step="10"
+                    value={minChapters}
+                    onChange={(e) => handleMinChaptersChange(e.target.value)}
+                />
+                <input
+                    className="filter-number hidden w-full border border-border bg-surface px-3 py-2 text-sm text-text-primary lg:block"
+                    type="number"
+                    min="0"
+                    value={minChaptersInput}
+                    onFocus={() => { minCommitBaseRef.current = minChapters }}
+                    onChange={(e) => handleMinChaptersChange(e.target.value)}
+                    onBlur={commitMinChapters}
+                    onKeyDown={handleMinChaptersKeyDown}
+                />
+            </div>
+
+            <div className="sticky bottom-0 z-10 mt-3 border-t border-border bg-elevated pt-3 lg:hidden">
+                <button
+                    type="button"
+                    className="mobile-apply-btn inline-flex h-11 w-full items-center justify-center border border-accent-red bg-accent-red font-mono text-xs tracking-[0.12em] text-white"
+                    onClick={() => setIsMobileFilterOpen(false)}
+                >
+                    APPLY FILTERS
+                </button>
+            </div>
+        </>
+    )
+
     return (
         <>
             <header
@@ -819,7 +962,7 @@ function HomePage({ initialTopTab = 'browse' }) {
                         </div>
                     )}
 
-                    <div className="mobile-filter-toolbar sticky top-14 z-40 flex items-center justify-between gap-2 border-b border-border bg-background/95 px-3 py-2 backdrop-blur-sm md:hidden">
+                    <div className="mobile-filter-toolbar sticky top-14 z-40 flex items-center justify-between gap-2 border-b border-border bg-background/95 px-3 py-2 backdrop-blur-sm lg:hidden">
                         <button
                             type="button"
                             className="mobile-filter-btn relative inline-flex h-11 items-center justify-center gap-2 border border-accent-red bg-elevated px-3 font-mono text-xs tracking-[0.12em] text-text-primary"
@@ -846,128 +989,51 @@ function HomePage({ initialTopTab = 'browse' }) {
                         </div>
                     </div>
 
-                    {isMobileFilterOpen && (
-                        <div
-                            className="mobile-filter-backdrop fixed inset-0 z-40 bg-black/50 md:hidden"
-                            onClick={() => setIsMobileFilterOpen(false)}
-                        />
-                    )}
+                    <AnimatePresence>
+                        {isMobileFilterOpen && (
+                            <motion.div
+                                className="mobile-filter-backdrop fixed inset-0 z-40 bg-black/55 lg:hidden"
+                                onClick={() => setIsMobileFilterOpen(false)}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: reduceMotion ? 0 : 0.18 }}
+                            />
+                        )}
+                    </AnimatePresence>
 
                     <div className="main-layout relative mx-auto flex w-full max-w-[1600px] gap-4 px-3 py-3 md:px-6 md:py-6">
                         {/* ── Filter Panel ── */}
-                        <aside
-                            className={`filter-panel z-50 w-full border border-border bg-elevated p-4 md:sticky md:top-[76px] md:z-auto md:h-fit md:max-w-[320px] ${isMobileFilterOpen ? 'mobile-open fixed inset-x-3 top-[72px] max-h-[calc(100vh-86px)] overflow-auto' : 'hidden md:block'}`}
-                        >
-                            <div className="mobile-filter-header mb-3 flex items-center justify-between border-b border-border pb-3 font-mono text-xs uppercase tracking-[0.14em] text-text-secondary md:hidden">
-                                <span>Filters</span>
-                                <button type="button" className="text-text-primary" onClick={() => setIsMobileFilterOpen(false)}>Close</button>
-                            </div>
-                            <UnifiedGenrePicker
-                                allGenres={genres}
-                                defaultExcludedGenres={defaultExcludedGenres}
-                                include={genreInclude}
-                                manualExclude={manualGenreExclude}
-                                onToggleState={(g) => {
-                                    if (genreInclude.includes(g)) {
-                                        if (manualGenreExclude.length >= MAX_EXCLUDE_GENRES) return;
-                                        updateMainFilters({
-                                            genre_include: genreInclude.filter(x => x !== g),
-                                            genre_exclude: [...manualGenreExclude, g],
-                                            exclude_mode: 'custom'
-                                        })
-                                    } else if (manualGenreExclude.includes(g)) {
-                                        updateMainFilters({
-                                            genre_exclude: manualGenreExclude.filter(x => x !== g),
-                                            exclude_mode: 'custom'
-                                        })
-                                    } else {
-                                        if (genreInclude.length >= MAX_INCLUDE_GENRES) return;
-                                        updateMainFilters({
-                                            genre_include: [...genreInclude, g]
-                                        })
-                                    }
-                                }}
-                                onClearAll={() => updateMainFilters({ genre_include: [], genre_exclude: [], exclude_mode: 'custom' })}
-                                maxInclude={MAX_INCLUDE_GENRES}
-                                maxExclude={MAX_EXCLUDE_GENRES}
-                            />
+                        <AnimatePresence>
+                            {isMobileFilterOpen && (
+                                <motion.aside
+                                    className="filter-panel fixed inset-x-0 bottom-0 z-50 max-h-[82vh] w-full rounded-t-2xl border border-border border-b-0 bg-elevated p-4 shadow-2xl lg:hidden"
+                                    initial={{ y: '100%' }}
+                                    animate={{ y: '0%' }}
+                                    exit={{ y: '100%' }}
+                                    transition={{ type: reduceMotion ? 'tween' : 'spring', duration: reduceMotion ? 0 : 0.22, bounce: 0.12 }}
+                                >
+                                    <div className="mobile-filter-header mb-2 border-b border-border pb-3">
+                                        <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-border" />
+                                        <div className="flex items-center justify-between font-mono text-xs uppercase tracking-[0.14em] text-text-secondary">
+                                            <span>Filters</span>
+                                            <button type="button" className="text-text-primary" onClick={() => setIsMobileFilterOpen(false)}>Close</button>
+                                        </div>
+                                    </div>
+                                    <div className="max-h-[66vh] space-y-0 overflow-y-auto">
+                                        {filterPanelInner}
+                                    </div>
+                                </motion.aside>
+                            )}
+                        </AnimatePresence>
 
-                            <div className="filter-section border-b border-border py-3">
-                                <div className="filter-label mb-2 font-mono text-[11px] uppercase tracking-[0.12em] text-text-secondary">Status</div>
-                                <div className="filter-status-segmented mobile-only">
-                                    {['', 'ongoing', 'completed'].map((v) => (
-                                        <button
-                                            type="button"
-                                            key={`seg-${v || 'all'}`}
-                                            className={`filter-segment border border-border px-2 py-2 font-mono text-[11px] tracking-[0.08em] ${status === v ? 'active bg-background text-text-primary' : 'text-text-secondary'}`}
-                                            onClick={() => updateMainFilters({ status: v })}
-                                        >
-                                            {v === '' ? 'ALL' : v}
-                                        </button>
-                                    ))}
-                                </div>
-
-                                <div className="desktop-only">
-                                    {['', 'ongoing', 'completed'].map((v) => (
-                                        <span
-                                            key={v}
-                                            className={`filter-status-option cursor-pointer font-mono text-xs tracking-[0.08em] ${status === v ? 'active text-text-primary' : 'text-text-secondary'}`}
-                                            onClick={() => updateMainFilters({ status: v })}
-                                        >
-                                            {v === '' ? 'ALL' : v}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="filter-section border-b border-border py-3">
-                                <div className="filter-label mb-2 font-mono text-[11px] uppercase tracking-[0.12em] text-text-secondary">Sort By</div>
-                                <select className="filter-select w-full border border-border bg-surface px-3 py-2 text-sm text-text-primary" value={sortBy} onChange={(e) => updateMainFilters({ sort_by: e.target.value })}>
-                                    <option value="score">Best Score</option>
-                                    <option value="views">Most Popular</option>
-                                    <option value="chapters">Most Chapters</option>
-                                    <option value="completion">Completion Rate</option>
-                                </select>
-                            </div>
-
-                            <div className="filter-section py-3" style={{ borderBottom: 'none' }}>
-                                <div className="filter-label filter-label-row mb-2 flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.12em] text-text-secondary">
-                                    <span>Min Chapters</span>
-                                    <span className="mobile-value-badge mobile-only rounded bg-background px-2 py-0.5 text-[10px] text-text-primary">{minChapters}</span>
-                                </div>
-                                <input
-                                    className="mobile-range-slider mobile-only w-full accent-[#C1121F]"
-                                    type="range"
-                                    min="0"
-                                    max="500"
-                                    step="10"
-                                    value={minChapters}
-                                    onChange={(e) => handleMinChaptersChange(e.target.value)}
-                                />
-                                <input
-                                    className="filter-number desktop-only w-full border border-border bg-surface px-3 py-2 text-sm text-text-primary"
-                                    type="number"
-                                    min="0"
-                                    value={minChaptersInput}
-                                    onFocus={() => { minCommitBaseRef.current = minChapters }}
-                                    onChange={(e) => handleMinChaptersChange(e.target.value)}
-                                    onBlur={commitMinChapters}
-                                    onKeyDown={handleMinChaptersKeyDown}
-                                />
-                            </div>
-
-                            <button
-                                type="button"
-                                className="mobile-apply-btn mt-3 inline-flex h-11 w-full items-center justify-center border border-accent-red bg-accent-red font-mono text-xs tracking-[0.12em] text-white md:hidden"
-                                onClick={() => setIsMobileFilterOpen(false)}
-                            >
-                                APPLY FILTERS
-                            </button>
+                        <aside className="filter-panel hidden w-full border border-border bg-elevated p-4 lg:sticky lg:top-[76px] lg:block lg:max-h-[calc(100vh-96px)] lg:max-w-[320px] lg:overflow-y-auto">
+                            {filterPanelInner}
                         </aside>
 
                         {/* ── Main Content ── */}
                         <main className="content-area min-w-0 flex-1" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
-                            <div className="view-controls mb-4 hidden justify-end gap-2 md:flex">
+                            <div className="view-controls mb-4 hidden justify-end gap-2 lg:flex">
                                 <button
                                     className={`view-toggle-btn h-10 border border-border px-3 font-mono text-xs tracking-[0.12em] ${viewMode === 'list' ? 'active bg-elevated text-text-primary' : 'bg-surface text-text-secondary'}`}
                                     onClick={() => setViewMode('list')}
