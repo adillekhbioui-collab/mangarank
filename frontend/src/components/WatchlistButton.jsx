@@ -15,7 +15,7 @@ const STATUS_COLORS = {
   dropped: 'var(--watchlist-drop)',
 };
 
-export function WatchlistButton({ manga, compact = false }) {
+export function WatchlistButton({ manga, compact = false, compactVariant = 'default' }) {
   const { getStatus, addOrUpdate, remove, STATUSES } = useWatchlist();
   const current = getStatus(manga.title);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -63,14 +63,26 @@ export function WatchlistButton({ manga, compact = false }) {
   }
 
   if (compact) {
+    const isOverlay = compactVariant === 'overlay';
+    const compactLabel = current ? STATUS_LABELS[current].toUpperCase() : '+ ADD';
+    const overlayStyle = current
+      ? { borderColor: STATUS_COLORS[current], color: STATUS_COLORS[current] }
+      : {};
+
     return (
-      <div className="watchlist-compact" onClick={handleClick}>
+      <div
+        className={isOverlay
+          ? 'watchlist-compact inline-flex h-7 items-center rounded border border-border bg-background/85 px-2 font-mono text-[10px] tracking-[0.12em] text-text-primary backdrop-blur-sm'
+          : 'watchlist-compact'}
+        style={isOverlay ? overlayStyle : undefined}
+        onClick={handleClick}
+      >
         {current ? (
-          <span style={{ color: STATUS_COLORS[current] }}>
-            {STATUS_LABELS[current]}
+          <span style={isOverlay ? undefined : { color: STATUS_COLORS[current] }}>
+            {compactLabel}
           </span>
         ) : (
-          <span>+ Add</span>
+          <span>{compactLabel}</span>
         )}
       </div>
     );

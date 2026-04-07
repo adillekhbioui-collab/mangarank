@@ -704,51 +704,90 @@ function HomePage({ initialTopTab = 'browse' }) {
 
     return (
         <>
-            <header className={`site-header ${isHeaderHidden ? 'site-header-hidden' : ''}`}>
-                <div className="header-left">
-                    <Link to="/" className="logo" onClick={() => updateMainFilters({}, 'push')}>
-                        <span className="logo-manhwa">MANHWA</span>
-                        <span className="logo-rank">RANK</span>
-                    </Link>
-                </div>
-
-                <div className="header-center">
-                    <div className="nav-tabs">
-                        <span className={`nav-tab ${topTab === 'browse' && category === '' ? 'active' : ''}`} onClick={() => { setTopTab('browse'); handleQuickFilter('') }}>ALL</span>
-                        <span className={`nav-tab ${topTab === 'browse' && category === 'manhwa' ? 'active' : ''}`} onClick={() => { setTopTab('browse'); handleQuickFilter('manhwa') }}>MANHWA</span>
-                        <span className={`nav-tab ${topTab === 'browse' && category === 'manhua' ? 'active' : ''}`} onClick={() => { setTopTab('browse'); handleQuickFilter('manhua') }}>MANHUA</span>
-                        <span className={`nav-tab ${topTab === 'charts' ? 'active' : ''}`} onClick={() => setTopTab('charts')}>CHARTS</span>
-                        <span className={`nav-tab ${topTab === 'watchlist' ? 'active' : ''}`} onClick={() => setTopTab('watchlist')}>WATCHLIST</span>
+            <header
+                className={[
+                    'sticky top-0 z-[100] border-b border-border bg-background/85 backdrop-blur-md',
+                    'transition-transform duration-200',
+                    isHeaderHidden ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100',
+                ].join(' ')}
+            >
+                <div className="flex h-14 items-center justify-between gap-3 px-3 sm:px-6">
+                    <div className="shrink-0">
+                        <Link to="/" className="flex items-center" onClick={() => updateMainFilters({}, 'push')}>
+                            <span className="font-serif text-xl font-bold text-text-primary">MANHWA</span>
+                            <span className="font-mono text-xl text-accent-red">RANK</span>
+                        </Link>
                     </div>
-                </div>
 
-                <div className="header-right">
-                    <input
-                        className="search-input"
-                        type="text"
-                        placeholder="Search titles..."
-                        value={searchInput}
-                        onFocus={() => { searchCommitBaseRef.current = search }}
-                        onChange={(e) => handleSearchChange(e.target.value)}
-                        onBlur={commitSearch}
-                        onKeyDown={handleSearchKeyDown}
-                    />
-                    <div className="header-actions">
-                        <AuthButton />
-                        <button className="theme-toggle" onClick={toggleTheme}>
-                            {isDark ? '○ LIGHT' : '● DARK'}
+                    <div className="hidden h-full items-center gap-6 md:flex">
+                        <button
+                            type="button"
+                            className={`h-full border-b-2 px-0 font-mono text-[11px] tracking-[0.15em] transition-colors ${topTab === 'browse' && category === '' ? 'border-accent-red text-text-primary' : 'border-transparent text-text-secondary hover:text-text-primary'}`}
+                            onClick={() => { setTopTab('browse'); handleQuickFilter('') }}
+                        >
+                            ALL
                         </button>
+                        <button
+                            type="button"
+                            className={`h-full border-b-2 px-0 font-mono text-[11px] tracking-[0.15em] transition-colors ${topTab === 'browse' && category === 'manhwa' ? 'border-accent-red text-text-primary' : 'border-transparent text-text-secondary hover:text-text-primary'}`}
+                            onClick={() => { setTopTab('browse'); handleQuickFilter('manhwa') }}
+                        >
+                            MANHWA
+                        </button>
+                        <button
+                            type="button"
+                            className={`h-full border-b-2 px-0 font-mono text-[11px] tracking-[0.15em] transition-colors ${topTab === 'browse' && category === 'manhua' ? 'border-accent-red text-text-primary' : 'border-transparent text-text-secondary hover:text-text-primary'}`}
+                            onClick={() => { setTopTab('browse'); handleQuickFilter('manhua') }}
+                        >
+                            MANHUA
+                        </button>
+                        <button
+                            type="button"
+                            className={`h-full border-b-2 px-0 font-mono text-[11px] tracking-[0.15em] transition-colors ${topTab === 'charts' ? 'border-accent-red text-text-primary' : 'border-transparent text-text-secondary hover:text-text-primary'}`}
+                            onClick={() => setTopTab('charts')}
+                        >
+                            CHARTS
+                        </button>
+                        <button
+                            type="button"
+                            className={`h-full border-b-2 px-0 font-mono text-[11px] tracking-[0.15em] transition-colors ${topTab === 'watchlist' ? 'border-accent-red text-text-primary' : 'border-transparent text-text-secondary hover:text-text-primary'}`}
+                            onClick={() => setTopTab('watchlist')}
+                        >
+                            WATCHLIST
+                        </button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <input
+                            className="w-[130px] border-b border-border bg-surface px-3 py-1.5 text-xs text-text-primary outline-none transition-colors placeholder:text-text-secondary focus:border-accent-red sm:w-[170px] md:w-[210px] lg:w-[260px]"
+                            type="text"
+                            placeholder="Search titles..."
+                            value={searchInput}
+                            onFocus={() => { searchCommitBaseRef.current = search }}
+                            onChange={(e) => handleSearchChange(e.target.value)}
+                            onBlur={commitSearch}
+                            onKeyDown={handleSearchKeyDown}
+                        />
+                        <div className="flex items-center gap-1.5">
+                            <AuthButton />
+                            <button
+                                className="border border-border bg-surface px-2.5 py-1.5 font-mono text-[11px] tracking-[0.08em] text-text-secondary transition-colors hover:text-text-primary"
+                                onClick={toggleTheme}
+                            >
+                                {isDark ? '○ LIGHT' : '● DARK'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </header>
 
             {topTab === 'browse' && (
                 <>
-                    <div className="category-strip">
+                    <div className="category-strip flex gap-3 overflow-x-auto border-b border-border px-3 py-4 md:px-6">
                         {QUICK_FILTERS.map(({ label, category: quickCategory, desc }) => (
                             <div
                                 key={quickCategory}
-                                className={`category-card ${activeQuickFilter === quickCategory ? 'active' : ''}`}
+                                className={`category-card min-w-[176px] cursor-pointer border-l-4 px-4 py-3 transition-colors ${activeQuickFilter === quickCategory ? 'active border-black bg-white text-black' : 'border-border bg-surface text-text-primary hover:bg-elevated'}`}
                                 data-cat={quickCategory}
                                 onClick={() => handleQuickFilter(quickCategory)}
                                 onMouseEnter={(e) => {
@@ -762,8 +801,8 @@ function HomePage({ initialTopTab = 'browse' }) {
                                 }}
                                 onMouseLeave={() => setCategoryTooltip(null)}
                             >
-                                <div className="cat-name">{label.replace(/[^a-zA-Z\s]/g, '').trim()}</div>
-                                <div className="cat-count">VIEW CATEGORY</div>
+                                <div className="cat-name font-mono text-xs uppercase tracking-[0.12em]">{label.replace(/[^a-zA-Z\s]/g, '').trim()}</div>
+                                <div className="cat-count mt-1 text-[10px] uppercase tracking-[0.1em] text-text-secondary">VIEW CATEGORY</div>
                             </div>
                         ))}
                     </div>
@@ -780,26 +819,26 @@ function HomePage({ initialTopTab = 'browse' }) {
                         </div>
                     )}
 
-                    <div className="mobile-filter-toolbar">
+                    <div className="mobile-filter-toolbar sticky top-14 z-40 flex items-center justify-between gap-2 border-b border-border bg-background/95 px-3 py-2 backdrop-blur-sm md:hidden">
                         <button
                             type="button"
-                            className="mobile-filter-btn"
+                            className="mobile-filter-btn relative inline-flex h-11 items-center justify-center gap-2 border border-accent-red bg-elevated px-3 font-mono text-xs tracking-[0.12em] text-text-primary"
                             onClick={() => setIsMobileFilterOpen(true)}
                         >
                             FILTER
-                            {activeFilterCount > 0 && <span className="mobile-filter-badge">{activeFilterCount}</span>}
+                            {activeFilterCount > 0 && <span className="mobile-filter-badge inline-flex min-w-5 items-center justify-center rounded-full bg-accent-red px-1.5 py-0.5 text-[10px] text-white">{activeFilterCount}</span>}
                         </button>
-                        <div className="mobile-view-toggle">
+                        <div className="mobile-view-toggle inline-flex items-center border border-border bg-surface">
                             <button
                                 type="button"
-                                className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+                                className={`view-toggle-btn h-11 px-3 font-mono text-[11px] tracking-[0.12em] ${viewMode === 'list' ? 'active border-r border-border bg-elevated text-text-primary' : 'border-r border-border text-text-secondary'}`}
                                 onClick={() => setViewMode('list')}
                             >
                                 LIST
                             </button>
                             <button
                                 type="button"
-                                className={`view-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                                className={`view-toggle-btn h-11 px-3 font-mono text-[11px] tracking-[0.12em] ${viewMode === 'grid' ? 'active bg-elevated text-text-primary' : 'text-text-secondary'}`}
                                 onClick={() => setViewMode('grid')}
                             >
                                 GRID
@@ -807,14 +846,21 @@ function HomePage({ initialTopTab = 'browse' }) {
                         </div>
                     </div>
 
-                    {isMobileFilterOpen && <div className="mobile-filter-backdrop" onClick={() => setIsMobileFilterOpen(false)} />}
+                    {isMobileFilterOpen && (
+                        <div
+                            className="mobile-filter-backdrop fixed inset-0 z-40 bg-black/50 md:hidden"
+                            onClick={() => setIsMobileFilterOpen(false)}
+                        />
+                    )}
 
-                    <div className="main-layout">
+                    <div className="main-layout relative mx-auto flex w-full max-w-[1600px] gap-4 px-3 py-3 md:px-6 md:py-6">
                         {/* ── Filter Panel ── */}
-                        <aside className={`filter-panel ${isMobileFilterOpen ? 'mobile-open' : ''}`}>
-                            <div className="mobile-filter-header">
+                        <aside
+                            className={`filter-panel z-50 w-full border border-border bg-elevated p-4 md:sticky md:top-[76px] md:z-auto md:h-fit md:max-w-[320px] ${isMobileFilterOpen ? 'mobile-open fixed inset-x-3 top-[72px] max-h-[calc(100vh-86px)] overflow-auto' : 'hidden md:block'}`}
+                        >
+                            <div className="mobile-filter-header mb-3 flex items-center justify-between border-b border-border pb-3 font-mono text-xs uppercase tracking-[0.14em] text-text-secondary md:hidden">
                                 <span>Filters</span>
-                                <button type="button" onClick={() => setIsMobileFilterOpen(false)}>Close</button>
+                                <button type="button" className="text-text-primary" onClick={() => setIsMobileFilterOpen(false)}>Close</button>
                             </div>
                             <UnifiedGenrePicker
                                 allGenres={genres}
@@ -846,14 +892,14 @@ function HomePage({ initialTopTab = 'browse' }) {
                                 maxExclude={MAX_EXCLUDE_GENRES}
                             />
 
-                            <div className="filter-section">
-                                <div className="filter-label">Status</div>
+                            <div className="filter-section border-b border-border py-3">
+                                <div className="filter-label mb-2 font-mono text-[11px] uppercase tracking-[0.12em] text-text-secondary">Status</div>
                                 <div className="filter-status-segmented mobile-only">
                                     {['', 'ongoing', 'completed'].map((v) => (
                                         <button
                                             type="button"
                                             key={`seg-${v || 'all'}`}
-                                            className={`filter-segment ${status === v ? 'active' : ''}`}
+                                            className={`filter-segment border border-border px-2 py-2 font-mono text-[11px] tracking-[0.08em] ${status === v ? 'active bg-background text-text-primary' : 'text-text-secondary'}`}
                                             onClick={() => updateMainFilters({ status: v })}
                                         >
                                             {v === '' ? 'ALL' : v}
@@ -865,7 +911,7 @@ function HomePage({ initialTopTab = 'browse' }) {
                                     {['', 'ongoing', 'completed'].map((v) => (
                                         <span
                                             key={v}
-                                            className={`filter-status-option ${status === v ? 'active' : ''}`}
+                                            className={`filter-status-option cursor-pointer font-mono text-xs tracking-[0.08em] ${status === v ? 'active text-text-primary' : 'text-text-secondary'}`}
                                             onClick={() => updateMainFilters({ status: v })}
                                         >
                                             {v === '' ? 'ALL' : v}
@@ -874,9 +920,9 @@ function HomePage({ initialTopTab = 'browse' }) {
                                 </div>
                             </div>
 
-                            <div className="filter-section">
-                                <div className="filter-label">Sort By</div>
-                                <select className="filter-select" value={sortBy} onChange={(e) => updateMainFilters({ sort_by: e.target.value })}>
+                            <div className="filter-section border-b border-border py-3">
+                                <div className="filter-label mb-2 font-mono text-[11px] uppercase tracking-[0.12em] text-text-secondary">Sort By</div>
+                                <select className="filter-select w-full border border-border bg-surface px-3 py-2 text-sm text-text-primary" value={sortBy} onChange={(e) => updateMainFilters({ sort_by: e.target.value })}>
                                     <option value="score">Best Score</option>
                                     <option value="views">Most Popular</option>
                                     <option value="chapters">Most Chapters</option>
@@ -884,13 +930,13 @@ function HomePage({ initialTopTab = 'browse' }) {
                                 </select>
                             </div>
 
-                            <div className="filter-section" style={{ borderBottom: 'none' }}>
-                                <div className="filter-label filter-label-row">
+                            <div className="filter-section py-3" style={{ borderBottom: 'none' }}>
+                                <div className="filter-label filter-label-row mb-2 flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.12em] text-text-secondary">
                                     <span>Min Chapters</span>
-                                    <span className="mobile-value-badge mobile-only">{minChapters}</span>
+                                    <span className="mobile-value-badge mobile-only rounded bg-background px-2 py-0.5 text-[10px] text-text-primary">{minChapters}</span>
                                 </div>
                                 <input
-                                    className="mobile-range-slider mobile-only"
+                                    className="mobile-range-slider mobile-only w-full accent-[#C1121F]"
                                     type="range"
                                     min="0"
                                     max="500"
@@ -899,7 +945,7 @@ function HomePage({ initialTopTab = 'browse' }) {
                                     onChange={(e) => handleMinChaptersChange(e.target.value)}
                                 />
                                 <input
-                                    className="filter-number desktop-only"
+                                    className="filter-number desktop-only w-full border border-border bg-surface px-3 py-2 text-sm text-text-primary"
                                     type="number"
                                     min="0"
                                     value={minChaptersInput}
@@ -912,7 +958,7 @@ function HomePage({ initialTopTab = 'browse' }) {
 
                             <button
                                 type="button"
-                                className="mobile-apply-btn"
+                                className="mobile-apply-btn mt-3 inline-flex h-11 w-full items-center justify-center border border-accent-red bg-accent-red font-mono text-xs tracking-[0.12em] text-white md:hidden"
                                 onClick={() => setIsMobileFilterOpen(false)}
                             >
                                 APPLY FILTERS
@@ -920,16 +966,16 @@ function HomePage({ initialTopTab = 'browse' }) {
                         </aside>
 
                         {/* ── Main Content ── */}
-                        <main className="content-area" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
-                            <div className="view-controls" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px', gap: '8px' }}>
+                        <main className="content-area min-w-0 flex-1" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
+                            <div className="view-controls mb-4 hidden justify-end gap-2 md:flex">
                                 <button
-                                    className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+                                    className={`view-toggle-btn h-10 border border-border px-3 font-mono text-xs tracking-[0.12em] ${viewMode === 'list' ? 'active bg-elevated text-text-primary' : 'bg-surface text-text-secondary'}`}
                                     onClick={() => setViewMode('list')}
                                 >
                                     LIST VIEW
                                 </button>
                                 <button
-                                    className={`view-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                                    className={`view-toggle-btn h-10 border border-border px-3 font-mono text-xs tracking-[0.12em] ${viewMode === 'grid' ? 'active bg-elevated text-text-primary' : 'bg-surface text-text-secondary'}`}
                                     onClick={() => setViewMode('grid')}
                                 >
                                     GRID VIEW
@@ -937,56 +983,98 @@ function HomePage({ initialTopTab = 'browse' }) {
                             </div>
 
                             {loading && (
-                                <div className={viewMode === 'list' ? 'manga-list' : 'manga-grid'}>
+                                <div className={viewMode === 'list' ? 'space-y-3' : 'grid grid-cols-3 gap-1.5 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7'}>
                                     {Array.from({ length: 8 }).map((_, i) => (
-                                        <div key={i} className="skeleton-strip" />
+                                        <div key={i} className={viewMode === 'list' ? 'h-36 animate-pulse border border-border bg-surface' : 'h-64 animate-pulse border border-border bg-surface'} />
                                     ))}
                                 </div>
                             )}
 
                             {!loading && results.length === 0 && (
-                                <div style={{ padding: '48px', textAlign: 'center', fontFamily: 'var(--font-data)', color: 'var(--text-secondary)' }}>
+                                <div className="px-6 py-12 text-center font-mono text-sm tracking-[0.08em] text-text-secondary">
                                     NO RESULTS FOUND.
                                 </div>
                             )}
 
                             {!loading && results.length > 0 && (
                                 <>
-                                    <div className={viewMode === 'list' ? 'manga-list' : 'manga-grid'}>
+                                    <div className={viewMode === 'list' ? 'space-y-3' : 'grid grid-cols-3 gap-1.5 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7'}>
                                         {results.map((m, i) => {
                                             const rank = (page - 1) * LIMIT + i + 1;
                                             const badgeLabel = m.status ? m.status : 'ONGOING';
-                                            let scoreColorClass = 'low';
-                                            if (m.aggregated_score >= 90) scoreColorClass = 'gold';
-                                            else if (m.aggregated_score >= 75) scoreColorClass = 'normal';
+                                            let scoreTone = 'text-text-secondary';
+                                            if (m.aggregated_score >= 90) scoreTone = 'text-accent-gold';
+                                            else if (m.aggregated_score >= 75) scoreTone = 'text-text-primary';
+                                            const statusTone = badgeLabel.toLowerCase() === 'completed'
+                                                ? 'text-accent-gold border-accent-gold/40'
+                                                : 'text-text-secondary border-border';
+
+                                            const onCardClick = () => {
+                                                track(
+                                                    'manga_click',
+                                                    {
+                                                        manga_title: m.title,
+                                                        metadata: {
+                                                            score: m.aggregated_score ?? null,
+                                                            rank,
+                                                        },
+                                                    },
+                                                    {
+                                                        persist: true,
+                                                    },
+                                                )
+                                            }
+
+                                            if (viewMode === 'grid') {
+                                                return (
+                                                    <Link
+                                                        key={`${m.title}-${i}`}
+                                                        to={`/manga/${encodeURIComponent(m.title)}`}
+                                                        className="group relative overflow-hidden border border-border bg-elevated transition-colors hover:bg-surface"
+                                                        onClick={onCardClick}
+                                                    >
+                                                        <div className="absolute left-2 top-2 z-10 font-mono text-[11px] text-text-secondary">{rank}</div>
+                                                        <div className="absolute right-2 top-2 z-10"><WatchlistButton manga={m} compact compactVariant="overlay" /></div>
+                                                        <div className="aspect-[3/4] overflow-hidden border-b border-border bg-background">
+                                                            <img
+                                                                className="h-full w-full object-cover"
+                                                                src={m.cover_image
+                                                                    ? `${API_BASE}/proxy/image?url=${encodeURIComponent(m.cover_image)}`
+                                                                    : 'https://placehold.co/220x330/1C1822/3D3545?text=No+Cover'
+                                                                }
+                                                                alt={m.title}
+                                                                loading="lazy"
+                                                            />
+                                                        </div>
+                                                        <div className="p-2">
+                                                            <h3 className="line-clamp-2 font-serif text-[13px] leading-tight text-text-primary">{m.title}</h3>
+                                                            <div className="mt-1 truncate text-[10px] text-text-secondary">{m.author || 'Unknown Author'}</div>
+                                                            <div className="mt-2 flex items-center justify-between">
+                                                                <div className="flex items-end gap-1">
+                                                                    <span className={`font-mono text-lg leading-none ${scoreTone}`}>{m.aggregated_score != null ? Math.round(m.aggregated_score) : '—'}</span>
+                                                                    <span className="mb-0.5 font-mono text-[9px] tracking-[0.1em] text-text-ghost">SCORE</span>
+                                                                </div>
+                                                                <span className={`rounded border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.08em] ${statusTone}`}>{badgeLabel}</span>
+                                                            </div>
+                                                            <div className="mt-1 text-[9px] text-text-ghost">{m.chapter_count || 0} ch. · {m.total_views ? m.total_views.toLocaleString() : '0'} views</div>
+                                                        </div>
+                                                    </Link>
+                                                )
+                                            }
 
                                             return (
                                                 <Link
                                                     key={`${m.title}-${i}`}
                                                     to={`/manga/${encodeURIComponent(m.title)}`}
-                                                    className="manga-strip"
-                                                    onClick={() => {
-                                                        track(
-                                                            'manga_click',
-                                                            {
-                                                                manga_title: m.title,
-                                                                metadata: {
-                                                                    score: m.aggregated_score ?? null,
-                                                                    rank,
-                                                                },
-                                                            },
-                                                            {
-                                                                persist: true,
-                                                            },
-                                                        )
-                                                    }}
+                                                    className="group grid grid-cols-[42px_88px_1fr_auto] gap-3 border border-border bg-elevated p-3 transition-colors hover:bg-surface"
+                                                    onClick={onCardClick}
                                                 >
-                                                    <div className="strip-rank-col">
-                                                        <span className="strip-rank">{rank}</span>
+                                                    <div className="flex items-start justify-center">
+                                                        <span className="font-mono text-sm text-text-secondary">{rank}</span>
                                                     </div>
-                                                    <div className="strip-cover-col">
+                                                    <div className="overflow-hidden border border-border bg-background">
                                                         <img
-                                                            className="strip-cover"
+                                                            className="h-full w-full object-cover"
                                                             src={m.cover_image
                                                                 ? `${API_BASE}/proxy/image?url=${encodeURIComponent(m.cover_image)}`
                                                                 : 'https://placehold.co/110x160/1C1822/3D3545?text=No+Cover'
@@ -995,49 +1083,57 @@ function HomePage({ initialTopTab = 'browse' }) {
                                                             loading="lazy"
                                                         />
                                                     </div>
-                                                    <div className="strip-meta-col">
-                                                        <h3 className="strip-title">{m.title}</h3>
-                                                        <div className="strip-author">{m.author || 'Unknown Author'}</div>
-                                                        <div className="strip-genres">
+                                                    <div className="min-w-0">
+                                                        <h3 className="line-clamp-2 font-serif text-[15px] leading-tight text-text-primary sm:text-base">{m.title}</h3>
+                                                        <div className="mt-1 truncate text-xs text-text-secondary">{m.author || 'Unknown Author'}</div>
+                                                        <div className="mt-1 line-clamp-1 text-xs text-text-ghost">
                                                             {(m.genres || []).slice(0, 4).join(' · ')}
                                                         </div>
-                                                        <div className="strip-stats">
+                                                        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-text-secondary">
                                                             <span>{m.chapter_count || 0} ch.</span>
                                                             <span>|</span>
                                                             <span>{m.total_views ? m.total_views.toLocaleString() : '0'} views</span>
-                                                            <span className={`strip-status ${badgeLabel.toLowerCase()}`}>{badgeLabel}</span>
+                                                            <span className={`rounded border px-1.5 py-0.5 uppercase tracking-[0.08em] ${statusTone}`}>{badgeLabel}</span>
                                                         </div>
                                                     </div>
-                                                    <div className="strip-watchlist-col"><WatchlistButton manga={m} compact /></div>
-                                                    <div className="strip-score-col">
-                                                        <div className={`strip-score ${scoreColorClass}`}>
+                                                    <div className="flex items-start justify-center pt-0.5"><WatchlistButton manga={m} compact /></div>
+                                                    <div className="flex min-w-[56px] flex-col items-end justify-start">
+                                                        <div className={`font-mono text-2xl leading-none ${scoreTone}`}>
                                                             {m.aggregated_score != null ? Math.round(m.aggregated_score) : '—'}
                                                         </div>
-                                                        <div className="score-label">SCORE</div>
+                                                        <div className="mt-1 font-mono text-[10px] tracking-[0.12em] text-text-ghost">SCORE</div>
                                                     </div>
                                                 </Link>
-                                            );
+                                            )
                                         })}
                                     </div>
 
                                     {!activeQuickFilter && totalPages > 1 && (
-                                        <div className="pagination">
-                                            <button className="page-btn" disabled={page <= 1} onClick={() => updatePage(page - 1)}>
+                                        <div className="mt-6 flex items-center justify-center gap-1.5">
+                                            <button
+                                                className="h-9 border border-border bg-surface px-3 font-mono text-xs tracking-[0.1em] text-text-secondary disabled:opacity-40"
+                                                disabled={page <= 1}
+                                                onClick={() => updatePage(page - 1)}
+                                            >
                                                 PREV
                                             </button>
                                             {getPageNumbers().map((p, i) =>
                                                 p === '...' ? (
-                                                    <span key={`e${i}`} className="page-num ellipsis">…</span>
+                                                    <span key={`e${i}`} className="px-2 text-text-ghost">…</span>
                                                 ) : (
                                                     <span key={p}
-                                                        className={`page-num ${p === page ? 'active' : ''}`}
+                                                        className={`inline-flex h-9 min-w-9 cursor-pointer items-center justify-center border px-2 font-mono text-xs ${p === page ? 'border-accent-red bg-elevated text-text-primary' : 'border-border bg-surface text-text-secondary'}`}
                                                         style={{ cursor: 'pointer' }}
                                                         onClick={() => updatePage(p)}>
                                                         {p}
                                                     </span>
                                                 )
                                             )}
-                                            <button className="page-btn" disabled={page >= totalPages} onClick={() => updatePage(Math.min(totalPages, page + 1))}>
+                                            <button
+                                                className="h-9 border border-border bg-surface px-3 font-mono text-xs tracking-[0.1em] text-text-secondary disabled:opacity-40"
+                                                disabled={page >= totalPages}
+                                                onClick={() => updatePage(Math.min(totalPages, page + 1))}
+                                            >
                                                 NEXT
                                             </button>
                                         </div>
@@ -1050,8 +1146,8 @@ function HomePage({ initialTopTab = 'browse' }) {
             )}
 
             {topTab === 'charts' && (
-                <div className="main-layout">
-                    <main className="content-area">
+                <div className="main-layout relative mx-auto flex w-full max-w-[1600px] gap-4 px-3 py-3 md:px-6 md:py-6">
+                    <main className="content-area min-w-0 flex-1">
                         <GenreUniverseSection
                             onBrowseGenres={(nextGenres) => {
                                 setTopTab('browse')
@@ -1067,8 +1163,8 @@ function HomePage({ initialTopTab = 'browse' }) {
             )}
 
             {topTab === 'watchlist' && (
-                <div className="main-layout">
-                    <main className="content-area">
+                <div className="main-layout relative mx-auto flex w-full max-w-[1600px] gap-4 px-3 py-3 md:px-6 md:py-6">
+                    <main className="content-area min-w-0 flex-1">
                         <WatchlistSection />
                     </main>
                 </div>
@@ -1079,8 +1175,8 @@ function HomePage({ initialTopTab = 'browse' }) {
 
 export default function App() {
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div className="flex min-h-screen flex-col">
+            <div className="flex flex-1 flex-col">
                 <Routes>
                     <Route path="/" element={<HomePage />} />
                     <Route path="/watchlist" element={<HomePage initialTopTab="watchlist" />} />

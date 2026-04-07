@@ -55,10 +55,10 @@ export default function AdminPage() {
     }
 
     return (
-        <div className="admin-gate-shell">
-            <div className="admin-gate-card">
-                <div className="admin-gate-title">Admin Access</div>
-                <div className="admin-gate-subtitle">Enter the backend admin password.</div>
+        <div className="min-h-screen bg-background text-text-primary flex items-center justify-center px-4">
+            <div className="w-full max-w-md bg-elevated border border-border px-6 py-7 sm:px-8 sm:py-8">
+                <div className="font-mono uppercase tracking-[0.18em] text-xs text-accent-red">Admin Access</div>
+                <div className="mt-2 text-sm text-text-secondary">Enter the backend admin password.</div>
                 <input
                     type="password"
                     value={input}
@@ -66,12 +66,16 @@ export default function AdminPage() {
                     onKeyDown={(event) => {
                         if (event.key === 'Enter' && !isValidating) handleEnter();
                     }}
-                    className="admin-gate-input"
+                    className="mt-4 w-full bg-surface border border-border px-3 py-2 text-sm text-text-primary placeholder:text-text-ghost outline-none focus:border-accent-red"
                     placeholder="Admin password"
                     disabled={isValidating}
                 />
-                {error ? <div className="admin-gate-error">{error}</div> : null}
-                <button className="admin-gate-btn" onClick={handleEnter} disabled={isValidating}>
+                {error ? <div className="mt-3 text-sm text-accent-red">{error}</div> : null}
+                <button
+                    className="mt-5 w-full border border-accent-red bg-accent-red px-4 py-2 font-mono text-xs uppercase tracking-[0.14em] text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                    onClick={handleEnter}
+                    disabled={isValidating}
+                >
                     {isValidating ? 'Verifying...' : 'Enter Control Room'}
                 </button>
             </div>
