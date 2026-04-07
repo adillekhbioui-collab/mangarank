@@ -3,14 +3,14 @@ import { useTheme } from './hooks/useTheme.js'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 
 import { Routes, Route, Link, useSearchParams } from 'react-router-dom'
-import { fetchManga, fetchGenres, fetchBlacklistedGenres, fetchTopCategory, API_BASE } from './api'
+import { fetchManga, fetchGenres, fetchBlacklistedGenres, fetchTopCategory } from './api'
 import { useAnalytics } from './hooks/useAnalytics.js'
 import MangaDetailPage from './MangaDetailPage.jsx'
 import AdminPage from './pages/AdminPage.jsx'
 import ProfilePage from './pages/ProfilePage.jsx'
 import GenreUniverseSection from './components/charts/GenreUniverseSection.jsx'
 import { WatchlistSection } from './components/WatchlistSection.jsx'
-import { WatchlistButton } from './components/WatchlistButton.jsx'
+import { MangaCard, MangaCardSkeleton } from './components/MangaCard.jsx'
 import { AuthButton } from './components/AuthButton.jsx'
 import Footer from './components/Footer.jsx'
 import NotFound from './pages/NotFound.jsx'
@@ -1051,7 +1051,7 @@ function HomePage({ initialTopTab = 'browse' }) {
                             {loading && (
                                 <div className={viewMode === 'list' ? 'space-y-3' : 'grid grid-cols-3 gap-1.5 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7'}>
                                     {Array.from({ length: 8 }).map((_, i) => (
-                                        <div key={i} className={viewMode === 'list' ? 'h-36 animate-pulse border border-border bg-surface' : 'h-64 animate-pulse border border-border bg-surface'} />
+                                        <MangaCardSkeleton key={i} viewMode={viewMode} />
                                     ))}
                                 </div>
                             )}
@@ -1067,15 +1067,7 @@ function HomePage({ initialTopTab = 'browse' }) {
                                     <div className={viewMode === 'list' ? 'space-y-3' : 'grid grid-cols-3 gap-1.5 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7'}>
                                         {results.map((m, i) => {
                                             const rank = (page - 1) * LIMIT + i + 1;
-                                            const badgeLabel = m.status ? m.status : 'ONGOING';
-                                            let scoreTone = 'text-text-secondary';
-                                            if (m.aggregated_score >= 90) scoreTone = 'text-accent-gold';
-                                            else if (m.aggregated_score >= 75) scoreTone = 'text-text-primary';
-                                            const statusTone = badgeLabel.toLowerCase() === 'completed'
-                                                ? 'text-accent-gold border-accent-gold/40'
-                                                : 'text-text-secondary border-border';
-
-                                            const onCardClick = () => {
+                                            const handleCardClick = () => {
                                                 track(
                                                     'manga_click',
                                                     {
@@ -1090,86 +1082,14 @@ function HomePage({ initialTopTab = 'browse' }) {
                                                     },
                                                 )
                                             }
-
-                                            if (viewMode === 'grid') {
-                                                return (
-                                                    <Link
-                                                        key={`${m.title}-${i}`}
-                                                        to={`/manga/${encodeURIComponent(m.title)}`}
-                                                        className="group relative overflow-hidden border border-border bg-elevated transition-colors hover:bg-surface"
-                                                        onClick={onCardClick}
-                                                    >
-                                                        <div className="absolute left-2 top-2 z-10 font-mono text-[11px] text-text-secondary">{rank}</div>
-                                                        <div className="absolute right-2 top-2 z-10"><WatchlistButton manga={m} compact compactVariant="overlay" /></div>
-                                                        <div className="aspect-[3/4] overflow-hidden border-b border-border bg-background">
-                                                            <img
-                                                                className="h-full w-full object-cover"
-                                                                src={m.cover_image
-                                                                    ? `${API_BASE}/proxy/image?url=${encodeURIComponent(m.cover_image)}`
-                                                                    : 'https://placehold.co/220x330/1C1822/3D3545?text=No+Cover'
-                                                                }
-                                                                alt={m.title}
-                                                                loading="lazy"
-                                                            />
-                                                        </div>
-                                                        <div className="p-2">
-                                                            <h3 className="line-clamp-2 font-serif text-[13px] leading-tight text-text-primary">{m.title}</h3>
-                                                            <div className="mt-1 truncate text-[10px] text-text-secondary">{m.author || 'Unknown Author'}</div>
-                                                            <div className="mt-2 flex items-center justify-between">
-                                                                <div className="flex items-end gap-1">
-                                                                    <span className={`font-mono text-lg leading-none ${scoreTone}`}>{m.aggregated_score != null ? Math.round(m.aggregated_score) : '—'}</span>
-                                                                    <span className="mb-0.5 font-mono text-[9px] tracking-[0.1em] text-text-ghost">SCORE</span>
-                                                                </div>
-                                                                <span className={`rounded border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.08em] ${statusTone}`}>{badgeLabel}</span>
-                                                            </div>
-                                                            <div className="mt-1 text-[9px] text-text-ghost">{m.chapter_count || 0} ch. · {m.total_views ? m.total_views.toLocaleString() : '0'} views</div>
-                                                        </div>
-                                                    </Link>
-                                                )
-                                            }
-
                                             return (
-                                                <Link
+                                                <MangaCard
                                                     key={`${m.title}-${i}`}
-                                                    to={`/manga/${encodeURIComponent(m.title)}`}
-                                                    className="group grid grid-cols-[42px_88px_1fr_auto] gap-3 border border-border bg-elevated p-3 transition-colors hover:bg-surface"
-                                                    onClick={onCardClick}
-                                                >
-                                                    <div className="flex items-start justify-center">
-                                                        <span className="font-mono text-sm text-text-secondary">{rank}</span>
-                                                    </div>
-                                                    <div className="overflow-hidden border border-border bg-background">
-                                                        <img
-                                                            className="h-full w-full object-cover"
-                                                            src={m.cover_image
-                                                                ? `${API_BASE}/proxy/image?url=${encodeURIComponent(m.cover_image)}`
-                                                                : 'https://placehold.co/110x160/1C1822/3D3545?text=No+Cover'
-                                                            }
-                                                            alt={m.title}
-                                                            loading="lazy"
-                                                        />
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <h3 className="line-clamp-2 font-serif text-[15px] leading-tight text-text-primary sm:text-base">{m.title}</h3>
-                                                        <div className="mt-1 truncate text-xs text-text-secondary">{m.author || 'Unknown Author'}</div>
-                                                        <div className="mt-1 line-clamp-1 text-xs text-text-ghost">
-                                                            {(m.genres || []).slice(0, 4).join(' · ')}
-                                                        </div>
-                                                        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-text-secondary">
-                                                            <span>{m.chapter_count || 0} ch.</span>
-                                                            <span>|</span>
-                                                            <span>{m.total_views ? m.total_views.toLocaleString() : '0'} views</span>
-                                                            <span className={`rounded border px-1.5 py-0.5 uppercase tracking-[0.08em] ${statusTone}`}>{badgeLabel}</span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-start justify-center pt-0.5"><WatchlistButton manga={m} compact /></div>
-                                                    <div className="flex min-w-[56px] flex-col items-end justify-start">
-                                                        <div className={`font-mono text-2xl leading-none ${scoreTone}`}>
-                                                            {m.aggregated_score != null ? Math.round(m.aggregated_score) : '—'}
-                                                        </div>
-                                                        <div className="mt-1 font-mono text-[10px] tracking-[0.12em] text-text-ghost">SCORE</div>
-                                                    </div>
-                                                </Link>
+                                                    manga={m}
+                                                    rank={rank}
+                                                    viewMode={viewMode}
+                                                    onTrackClick={handleCardClick}
+                                                />
                                             )
                                         })}
                                     </div>
@@ -1187,10 +1107,11 @@ function HomePage({ initialTopTab = 'browse' }) {
                                                 p === '...' ? (
                                                     <span key={`e${i}`} className="px-2 text-text-ghost">…</span>
                                                 ) : (
-                                                    <span key={p}
+                                                    <span
+                                                        key={p}
                                                         className={`inline-flex h-9 min-w-9 cursor-pointer items-center justify-center border px-2 font-mono text-xs ${p === page ? 'border-accent-red bg-elevated text-text-primary' : 'border-border bg-surface text-text-secondary'}`}
-                                                        style={{ cursor: 'pointer' }}
-                                                        onClick={() => updatePage(p)}>
+                                                        onClick={() => updatePage(p)}
+                                                    >
                                                         {p}
                                                     </span>
                                                 )

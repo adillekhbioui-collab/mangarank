@@ -64,6 +64,7 @@ export function WatchlistButton({ manga, compact = false, compactVariant = 'defa
 
   if (compact) {
     const isOverlay = compactVariant === 'overlay';
+    const isInline = compactVariant === 'inline';
     const compactLabel = current ? STATUS_LABELS[current].toUpperCase() : '+ ADD';
     const overlayStyle = current
       ? { borderColor: STATUS_COLORS[current], color: STATUS_COLORS[current] }
@@ -71,14 +72,18 @@ export function WatchlistButton({ manga, compact = false, compactVariant = 'defa
 
     return (
       <div
-        className={isOverlay
-          ? 'watchlist-compact inline-flex h-7 items-center rounded border border-border bg-background/85 px-2 font-mono text-[10px] tracking-[0.12em] text-text-primary backdrop-blur-sm'
-          : 'watchlist-compact'}
-        style={isOverlay ? overlayStyle : undefined}
+        className={
+          isOverlay
+            ? 'watchlist-compact inline-flex min-h-11 items-center rounded border border-border bg-background/85 px-2.5 font-mono text-[10px] tracking-[0.12em] text-text-primary backdrop-blur-sm'
+            : isInline
+              ? 'watchlist-compact inline-flex min-h-11 items-center rounded border border-border bg-surface px-2.5 font-mono text-[10px] tracking-[0.12em] text-text-primary'
+              : 'watchlist-compact'
+        }
+        style={isOverlay || isInline ? overlayStyle : undefined}
         onClick={handleClick}
       >
         {current ? (
-          <span style={isOverlay ? undefined : { color: STATUS_COLORS[current] }}>
+          <span style={isOverlay || isInline ? undefined : { color: STATUS_COLORS[current] }}>
             {compactLabel}
           </span>
         ) : (
