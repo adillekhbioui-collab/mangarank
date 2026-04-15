@@ -55,27 +55,25 @@ const DEFAULT_FILTERS = {
 }
 
 function AppLogo({ isDark, onClick }) {
-    const src = isDark ? '/logo-dark.png' : '/logo-light.png'
+    const [hasError, setHasError] = useState(false)
+    const src = isDark ? '/logo-dark.svg' : '/logo-light.svg'
     const alt = isDark ? 'ManhwaRank dark logo' : 'ManhwaRank light logo'
 
     return (
-        <Link to="/" className="flex items-center" onClick={onClick}>
-            <span className={`inline-flex items-center ${isDark ? 'bg-[rgba(13,11,14,0.85)]' : 'bg-transparent'}`}>
+        <Link to="/" className="flex items-center" aria-label="Go to homepage" onClick={onClick}>
+            {hasError ? (
+                <span className="flex items-center font-serif text-xl font-bold text-text-primary sm:text-[22px] md:text-[24px] lg:text-[26px]">
+                    MANHWA<span className="font-mono text-accent-red">RANK</span>
+                </span>
+            ) : (
                 <img
                     src={src}
                     alt={alt}
-                    className="block h-9 w-auto object-contain sm:h-10 md:h-11 lg:h-14"
-                    style={{ maxWidth: 'min(100vw - 180px, 360px)' }}
-                    onError={(event) => {
-                        event.currentTarget.style.display = 'none'
-                        const fallback = event.currentTarget.nextElementSibling
-                        if (fallback) fallback.style.display = 'flex'
-                    }}
+                    className="block h-auto w-full object-contain"
+                    style={{ width: 'clamp(170px, 24vw, 220px)', maxWidth: '220px' }}
+                    onError={() => setHasError(true)}
                 />
-                <span className="hidden items-center font-serif text-xl font-bold text-text-primary" style={{ display: 'none' }}>
-                    MANHWA<span className="font-mono text-accent-red">RANK</span>
-                </span>
-            </span>
+            )}
         </Link>
     )
 }
