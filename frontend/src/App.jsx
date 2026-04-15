@@ -19,9 +19,9 @@ import Terms from './pages/Terms.jsx'
 
 
 const QUICK_FILTERS = [
-    { label: '⭐ Masterpieces', category: 'masterpieces', apiCategory: 'completion-masterpieces', desc: 'High quality manga that most readers finish.' },
-    { label: '⚠️ Hard to Finish', category: 'hard-to-finish', apiCategory: 'completion-traps', desc: 'Highly rated manga that most readers drop.' },
-    { label: '🍿 Guilty Pleasures', category: 'guilty-pleasures', desc: 'Lower-rated manga that readers keep finishing anyway.' },
+    { label: '⭐ Masterpieces', category: 'masterpieces', apiCategory: 'completion-masterpieces', desc: 'High quality manga (40+ chapters, 5k+ views) that most readers finish.' },
+    { label: '⚠️ Hard to Finish', category: 'hard-to-finish', apiCategory: 'completion-traps', desc: 'Highly rated manga (40+ chapters, 5k+ views) that most readers drop.' },
+    { label: '🍿 Guilty Pleasures', category: 'guilty-pleasures', desc: 'Lower-rated manga (40+ chapters, 5k+ views) that readers keep finishing anyway.' },
     { label: '🔥 Top Action', category: 'action', desc: '' },
     { label: '✨ Top Fantasy', category: 'fantasy', desc: '' },
     { label: '✅ Completed', category: 'completed', desc: '' },
@@ -52,6 +52,32 @@ const DEFAULT_FILTERS = {
     search: '',
     has_completion: false,
     category: '',
+}
+
+function AppLogo({ isDark, onClick }) {
+    const src = isDark ? '/logo-dark.png' : '/logo-light.png'
+    const alt = isDark ? 'ManhwaRank dark logo' : 'ManhwaRank light logo'
+
+    return (
+        <Link to="/" className="flex items-center" onClick={onClick}>
+            <span className={`inline-flex items-center ${isDark ? 'bg-[rgba(13,11,14,0.85)]' : 'bg-transparent'}`}>
+                <img
+                    src={src}
+                    alt={alt}
+                    className="block h-9 w-auto object-contain sm:h-10 md:h-11 lg:h-14"
+                    style={{ maxWidth: 'min(100vw - 180px, 360px)' }}
+                    onError={(event) => {
+                        event.currentTarget.style.display = 'none'
+                        const fallback = event.currentTarget.nextElementSibling
+                        if (fallback) fallback.style.display = 'flex'
+                    }}
+                />
+                <span className="hidden items-center font-serif text-xl font-bold text-text-primary" style={{ display: 'none' }}>
+                    MANHWA<span className="font-mono text-accent-red">RANK</span>
+                </span>
+            </span>
+        </Link>
+    )
 }
 
 function toPositiveInt(value, fallback) {
@@ -857,10 +883,7 @@ function HomePage({ initialTopTab = 'browse' }) {
                 <div className="px-3 py-2 sm:px-6 md:flex md:h-14 md:items-center md:justify-between md:gap-3 md:py-0">
                     <div className="flex items-center justify-between gap-2">
                         <div className="shrink-0">
-                            <Link to="/" className="flex items-center" onClick={() => updateMainFilters({}, 'push')}>
-                                <span className="font-serif text-[34px] font-bold leading-none text-text-primary md:text-xl">MANHWA</span>
-                                <span className="font-mono text-[34px] leading-none text-accent-red md:text-xl">RANK</span>
-                            </Link>
+                            <AppLogo isDark={isDark} onClick={() => updateMainFilters({}, 'push')} />
                         </div>
 
                         <div className="flex items-center gap-1.5 md:hidden">

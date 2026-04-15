@@ -235,6 +235,8 @@ async def top_by_category(request: Request, category: str, response: Response):
     Categories: action, romance, fantasy, drama, thriller, supernatural,
                 completed, ongoing, long (≥100 chapters), short (<20 chapters),
                 completion-masterpieces, completion-traps, guilty-pleasures.
+    Completion-profile categories include built-in quality gates:
+                chapter_count >= 40 and total_views >= 5000.
     """
     response.headers["Cache-Control"] = "public, max-age=300"
 
@@ -251,11 +253,11 @@ async def top_by_category(request: Request, category: str, response: Response):
     elif cat == "short":
         query += "&chapter_count=lt.20&order=aggregated_score.desc.nullslast"
     elif cat == "completion-masterpieces":
-        query += "&aggregated_score=gte.75&completion_rate=gte.60&total_readers=gte.1000&order=completion_rate.desc.nullslast"
+        query += "&aggregated_score=gte.75&completion_rate=gte.60&total_readers=gte.1000&chapter_count=gte.40&total_views=gte.5000&order=completion_rate.desc.nullslast"
     elif cat == "completion-traps":
-        query += "&aggregated_score=gte.75&completion_rate=lt.35&total_readers=gte.2000&order=aggregated_score.desc.nullslast"
+        query += "&aggregated_score=gte.75&completion_rate=lt.35&total_readers=gte.2000&chapter_count=gte.40&total_views=gte.5000&order=aggregated_score.desc.nullslast"
     elif cat == "guilty-pleasures":
-        query += "&aggregated_score=lt.70&completion_rate=gte.65&total_readers=gte.1000&order=completion_rate.desc.nullslast"
+        query += "&aggregated_score=lt.70&completion_rate=gte.65&total_readers=gte.1000&chapter_count=gte.40&total_views=gte.5000&order=completion_rate.desc.nullslast"
     else:
         raise HTTPException(
             status_code=400,
