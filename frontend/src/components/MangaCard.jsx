@@ -78,13 +78,9 @@ export function MangaCard({ manga, rank, viewMode, onTrackClick }) {
   return (
     <Link
       to={`/manga/${encodeURIComponent(manga.title)}`}
-      className="group grid min-h-[156px] grid-cols-[2.25rem_6rem_minmax(0,1fr)] border border-border bg-elevated transition-colors hover:bg-surface sm:min-h-[164px] sm:grid-cols-[2.5rem_6.875rem_minmax(0,1fr)]"
+      className="group grid min-h-[156px] grid-cols-[6rem_minmax(0,1fr)] border border-border bg-elevated transition-colors hover:bg-surface sm:min-h-[164px] sm:grid-cols-[6.875rem_minmax(0,1fr)]"
       onClick={onTrackClick}
     >
-      <div className="flex items-center justify-center border-r border-border/60 bg-background/35 font-mono text-sm text-text-secondary">
-        {rank}
-      </div>
-
       <div className="relative isolate self-stretch overflow-hidden bg-background">
         <img
           className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-105"
@@ -96,6 +92,9 @@ export function MangaCard({ manga, rank, viewMode, onTrackClick }) {
             event.currentTarget.src = fallbackCover;
           }}
         />
+        <span className="pointer-events-none absolute left-2.5 top-2 z-10 font-serif text-[34px] leading-none text-text-primary/18 drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)] sm:left-3 sm:text-[40px]">
+          {rank}
+        </span>
         <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-r from-transparent via-background/20 to-elevated/95 transition-colors group-hover:to-surface/95" />
       </div>
 
