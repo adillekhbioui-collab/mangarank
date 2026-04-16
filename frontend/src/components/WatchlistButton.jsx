@@ -66,6 +66,7 @@ export function WatchlistButton({ manga, compact = false, compactVariant = 'defa
     const isOverlay = compactVariant === 'overlay';
     const isInline = compactVariant === 'inline';
     const compactLabel = current ? STATUS_LABELS[current].toUpperCase() : '+ ADD';
+    const compactGlyph = current ? '●' : '+';
     const overlayStyle = current
       ? { borderColor: STATUS_COLORS[current], color: STATUS_COLORS[current] }
       : {};
@@ -74,21 +75,22 @@ export function WatchlistButton({ manga, compact = false, compactVariant = 'defa
       <div
         className={
           isOverlay
-            ? 'watchlist-compact inline-flex min-h-11 items-center rounded border border-border bg-background/85 px-2.5 font-mono text-[10px] tracking-[0.12em] text-text-primary backdrop-blur-sm'
+            ? 'watchlist-compact inline-flex min-h-11 items-center gap-1 rounded border border-border/90 bg-background/92 px-2.5 font-mono text-[10px] tracking-[0.12em] text-text-primary shadow-[0_1px_3px_rgba(0,0,0,0.2)] backdrop-blur-sm'
             : isInline
-              ? 'watchlist-compact inline-flex min-h-11 items-center rounded border border-border bg-surface px-2.5 font-mono text-[10px] tracking-[0.12em] text-text-primary'
+              ? 'watchlist-compact inline-flex min-h-11 items-center rounded border border-border/90 bg-surface px-2.5 font-mono text-[10px] tracking-[0.12em] text-text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]'
               : 'watchlist-compact'
         }
         style={isOverlay || isInline ? overlayStyle : undefined}
         onClick={handleClick}
+        title={current ? STATUS_LABELS[current] : 'Add to watchlist'}
+        aria-label={current ? `${STATUS_LABELS[current]} in watchlist` : 'Add to watchlist'}
       >
-        {current ? (
-          <span style={isOverlay || isInline ? undefined : { color: STATUS_COLORS[current] }}>
-            {compactLabel}
-          </span>
-        ) : (
-          <span>{compactLabel}</span>
-        )}
+        <span
+          className={isOverlay ? 'text-[11px] leading-none' : ''}
+          style={isOverlay || isInline ? undefined : { color: STATUS_COLORS[current] }}
+        >
+          {isOverlay ? compactGlyph : compactLabel}
+        </span>
       </div>
     );
   }

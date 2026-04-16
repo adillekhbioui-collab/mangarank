@@ -31,14 +31,13 @@ export function MangaCard({ manga, rank, viewMode, onTrackClick }) {
         className="group relative overflow-hidden border border-border bg-elevated transition-colors hover:bg-surface"
         onClick={onTrackClick}
       >
-        <div className="absolute left-1.5 top-1.5 z-10 rounded bg-background/75 px-1.5 py-0.5 font-mono text-[10px] text-text-secondary backdrop-blur-sm">{rank}</div>
         <div className="absolute right-1.5 top-1.5 z-10">
           <WatchlistButton manga={manga} compact compactVariant="overlay" />
         </div>
 
-        <div className="aspect-[3/4] overflow-hidden border-b border-border bg-background">
+        <div className="relative aspect-[3/4] overflow-hidden border-b border-border bg-background">
           <img
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-105"
             src={coverSrc}
             alt={manga.title}
             loading="lazy"
@@ -47,25 +46,29 @@ export function MangaCard({ manga, rank, viewMode, onTrackClick }) {
               event.currentTarget.src = fallbackCover;
             }}
           />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-elevated/88 via-elevated/18 to-transparent transition-colors group-hover:from-surface/92" />
+          <span className="pointer-events-none absolute left-2.5 top-2 z-10 font-serif text-[34px] leading-none text-text-primary/18 drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)] sm:left-3 sm:text-[40px]">
+            {rank}
+          </span>
         </div>
 
-        <div className="space-y-1.5 p-2">
-          <h3 className="line-clamp-2 font-serif text-[13px] leading-tight text-text-primary">{manga.title}</h3>
-          <div className="truncate text-[10px] text-text-secondary">{manga.author || 'Unknown Author'}</div>
+        <div className="space-y-1.5 p-2.5">
+          <h3 className="line-clamp-2 min-h-[2.35em] font-serif text-[14px] leading-[1.15] text-text-primary">{manga.title}</h3>
+          <div className="truncate text-[11px] text-text-secondary/90">{manga.author || 'Unknown Author'}</div>
 
           <div className="flex items-center justify-between">
             <div className="flex items-end gap-1">
-              <span className={`font-mono text-lg leading-none ${cardScoreTone}`}>
+              <span className={`font-mono text-[17px] leading-none ${cardScoreTone}`}>
                 {manga.aggregated_score != null ? Math.round(manga.aggregated_score) : '?'}
               </span>
-              <span className="mb-0.5 font-mono text-[9px] tracking-[0.1em] text-text-ghost">SCORE</span>
+              <span className="mb-0.5 font-mono text-[9px] tracking-[0.12em] text-text-ghost">SCORE</span>
             </div>
             <span className={`rounded border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.08em] ${cardStatusTone}`}>
               {badgeLabel}
             </span>
           </div>
 
-          <div className="text-[9px] text-text-ghost">
+          <div className="text-[10px] text-text-ghost">
             {manga.chapter_count || 0} ch.
             <span className="mx-1">·</span>
             {manga.total_views ? manga.total_views.toLocaleString() : '0'} views
@@ -106,8 +109,8 @@ export function MangaCard({ manga, rank, viewMode, onTrackClick }) {
           </div>
         </div>
 
-        <div className="mt-1 truncate text-xs text-text-secondary">{manga.author || 'Unknown Author'}</div>
-        <div className="mt-1 line-clamp-1 text-xs text-text-ghost">{(manga.genres || []).slice(0, 4).join(' · ')}</div>
+        <div className="mt-1 truncate text-xs text-text-secondary/95">{manga.author || 'Unknown Author'}</div>
+        <div className="mt-1 line-clamp-1 text-xs text-text-secondary/75">{(manga.genres || []).slice(0, 4).join(' · ')}</div>
 
         <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-text-secondary">
           <span>{manga.chapter_count || 0} ch.</span>
@@ -120,7 +123,7 @@ export function MangaCard({ manga, rank, viewMode, onTrackClick }) {
           <span className={`font-mono text-2xl leading-none ${cardScoreTone}`}>
             {manga.aggregated_score != null ? Math.round(manga.aggregated_score) : '?'}
           </span>
-          <span className="mb-0.5 font-mono text-[10px] tracking-[0.12em] text-text-ghost">SCORE</span>
+          <span className="mb-0.5 font-mono text-[10px] tracking-[0.12em] text-text-secondary/70">SCORE</span>
         </div>
       </div>
     </Link>

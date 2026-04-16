@@ -269,7 +269,7 @@ function UnifiedGenrePicker({
                 onClick={() => setIsExpanded(!isExpanded)}
             >
                 {isExpanded ? 'Hide Genres' : 'Show All Genres'}
-                <span>{isExpanded ? '▲' : '▼'}</span>
+                <span aria-hidden="true">{isExpanded ? '▲' : '▼'}</span>
             </button>
 
             {isExpanded && (
@@ -934,16 +934,24 @@ function HomePage({ initialTopTab = 'browse' }) {
                     </div>
 
                     <div className="mt-2 flex items-center gap-2 md:mt-0 md:ml-auto">
-                        <input
-                            className="h-11 w-full border border-border bg-surface px-3 py-1.5 text-sm text-text-primary outline-none transition-colors placeholder:text-text-secondary focus:border-accent-red md:h-9 md:w-[230px] md:text-xs lg:w-[290px]"
-                            type="text"
-                            placeholder="Search titles..."
-                            value={searchInput}
-                            onFocus={() => { searchCommitBaseRef.current = search }}
-                            onChange={(e) => handleSearchChange(e.target.value)}
-                            onBlur={commitSearch}
-                            onKeyDown={handleSearchKeyDown}
-                        />
+                        <div className="relative w-full md:w-[230px] lg:w-[290px]">
+                            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-text-secondary/70">
+                                <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-none stroke-current stroke-[1.8]">
+                                    <circle cx="11" cy="11" r="6.5" />
+                                    <path d="m16 16 4 4" strokeLinecap="round" />
+                                </svg>
+                            </span>
+                            <input
+                                className="h-11 w-full border border-border bg-surface px-3 py-1.5 pl-9 text-sm text-text-primary outline-none transition-colors placeholder:text-text-secondary focus:border-accent-red md:h-9 md:text-xs"
+                                type="text"
+                                placeholder="Search titles..."
+                                value={searchInput}
+                                onFocus={() => { searchCommitBaseRef.current = search }}
+                                onChange={(e) => handleSearchChange(e.target.value)}
+                                onBlur={commitSearch}
+                                onKeyDown={handleSearchKeyDown}
+                            />
+                        </div>
                         <div className="hidden items-center gap-2 md:flex [&_.auth-btn--signin]:ml-0 [&_.auth-btn--signin]:h-9 [&_.auth-btn--signin]:px-2.5 [&_.auth-btn--signin]:py-0 [&_.auth-user-menu]:ml-0 [&_.auth-avatar-btn]:h-9 [&_.auth-avatar-btn]:w-9">
                             <AuthButton />
                             <button
@@ -959,31 +967,33 @@ function HomePage({ initialTopTab = 'browse' }) {
 
             {topTab === 'browse' && (
                 <>
-                    <div className="category-strip flex gap-3 overflow-x-auto border-b border-border px-3 py-3.5 md:px-6 md:py-4">
-                        {QUICK_FILTERS.map(({ label, category: quickCategory, desc }) => (
-                            <div
-                                key={quickCategory}
-                                className={`category-card group relative min-w-[176px] cursor-pointer overflow-hidden border border-border/70 border-l-4 px-4 py-3 transition-all duration-200 ${activeQuickFilter === quickCategory ? 'border-accent-red/55 bg-elevated shadow-[inset_0_1px_0_rgba(193,18,31,0.35)]' : 'bg-surface text-text-primary hover:-translate-y-0.5 hover:border-accent-red/35 hover:bg-elevated/90'}`}
-                                data-cat={quickCategory}
-                                onClick={() => handleQuickFilter(quickCategory)}
-                                onMouseEnter={(e) => {
-                                    if (!desc) return
-                                    const rect = e.currentTarget.getBoundingClientRect()
-                                    setCategoryTooltip({
-                                        text: desc,
-                                        left: rect.left + (rect.width / 2),
-                                        top: rect.top - 10,
-                                    })
-                                }}
-                                onMouseLeave={() => setCategoryTooltip(null)}
-                            >
-                                <span
-                                    className={`pointer-events-none absolute inset-x-0 top-0 h-px transition-opacity ${activeQuickFilter === quickCategory ? 'bg-gradient-to-r from-transparent via-accent-red/80 to-transparent opacity-100' : 'bg-gradient-to-r from-transparent via-text-primary/25 to-transparent opacity-0 group-hover:opacity-100'}`}
-                                />
-                                <div className={`cat-name font-mono text-xs uppercase tracking-[0.12em] ${activeQuickFilter === quickCategory ? 'text-text-primary' : 'text-text-primary/90 group-hover:text-text-primary'}`}>{label.replace(/[^a-zA-Z\s]/g, '').trim()}</div>
-                                <div className={`cat-count mt-1 text-[10px] uppercase tracking-[0.1em] ${activeQuickFilter === quickCategory ? 'text-accent-gold' : 'text-text-secondary group-hover:text-text-primary/80'}`}>VIEW CATEGORY</div>
-                            </div>
-                        ))}
+                    <div className="relative border-b border-border">
+                        <div className="category-strip flex gap-3 overflow-x-auto px-3 py-3.5 md:px-6 md:py-4">
+                            {QUICK_FILTERS.map(({ label, category: quickCategory, desc }) => (
+                                <div
+                                    key={quickCategory}
+                                    className={`category-card group relative min-w-[176px] cursor-pointer overflow-hidden border border-border/70 border-l-4 px-4 py-2.5 transition-all duration-200 ${activeQuickFilter === quickCategory ? 'border-accent-red/55 bg-elevated shadow-[inset_0_1px_0_rgba(193,18,31,0.35)]' : 'bg-surface text-text-primary hover:-translate-y-0.5 hover:border-accent-red/35 hover:bg-elevated/90'}`}
+                                    data-cat={quickCategory}
+                                    onClick={() => handleQuickFilter(quickCategory)}
+                                    onMouseEnter={(e) => {
+                                        if (!desc) return
+                                        const rect = e.currentTarget.getBoundingClientRect()
+                                        setCategoryTooltip({
+                                            text: desc,
+                                            left: rect.left + (rect.width / 2),
+                                            top: rect.top - 10,
+                                        })
+                                    }}
+                                    onMouseLeave={() => setCategoryTooltip(null)}
+                                >
+                                    <span
+                                        className={`pointer-events-none absolute inset-x-0 top-0 h-px transition-opacity ${activeQuickFilter === quickCategory ? 'bg-gradient-to-r from-transparent via-accent-red/80 to-transparent opacity-100' : 'bg-gradient-to-r from-transparent via-text-primary/25 to-transparent opacity-0 group-hover:opacity-100'}`}
+                                    />
+                                    <div className={`cat-name font-mono text-xs uppercase tracking-[0.12em] ${activeQuickFilter === quickCategory ? 'text-text-primary' : 'text-text-primary/90 group-hover:text-text-primary'}`}>{label.replace(/[^a-zA-Z\s]/g, '').trim()}</div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-14 bg-gradient-to-l from-background via-background/82 to-transparent md:block" />
                     </div>
 
                     {categoryTooltip && (
@@ -1131,7 +1141,7 @@ function HomePage({ initialTopTab = 'browse' }) {
                                     </div>
 
                                     {!activeQuickFilter && totalPages > 1 && (
-                                        <div className="mt-6 flex items-center justify-center gap-1.5">
+                                        <div className="mt-5 flex items-center justify-center gap-1.5">
                                             <button
                                                 className="h-9 border border-border bg-surface px-3 font-mono text-xs tracking-[0.1em] text-text-secondary disabled:opacity-40"
                                                 disabled={page <= 1}
@@ -1194,7 +1204,7 @@ function HomePage({ initialTopTab = 'browse' }) {
             )}
 
             <nav
-                className="fixed inset-x-0 bottom-0 z-[90] border-t border-border bg-background/95 px-3 pt-2 backdrop-blur-md lg:hidden"
+                className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-[90] border-t border-border bg-background/95 px-3 pt-2 backdrop-blur-md lg:hidden"
                 style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)' }}
             >
                 <div className="mx-auto grid max-w-[560px] grid-cols-3 gap-2">
