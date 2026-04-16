@@ -13,6 +13,7 @@ Run: uvicorn backend.main:app --reload --port 8000
 
 import os
 from contextlib import asynccontextmanager
+from urllib.parse import urlparse
 
 import httpx
 from fastapi import FastAPI
@@ -22,17 +23,43 @@ from backend import deps
 from backend.routes import analytics, admin, manga, proxy
 
 
+def _with_loopback_variants(origins: list[str]) -> list[str]:
+    """Expand localhost/127.0.0.1 origins so either host works in dev."""
+    expanded: set[str] = set()
+
+    for origin in origins:
+        normalized = origin.strip().rstrip("/")
+        if not normalized:
+            continue
+
+        expanded.add(normalized)
+        parsed = urlparse(normalized)
+
+        if parsed.scheme and parsed.netloc:
+            if parsed.hostname == "localhost":
+                variant = normalized.replace("localhost", "127.0.0.1", 1)
+                expanded.add(variant)
+            elif parsed.hostname == "127.0.0.1":
+                variant = normalized.replace("127.0.0.1", "localhost", 1)
+                expanded.add(variant)
+
+    return sorted(expanded)
+
+
 def get_allowed_origins() -> list[str]:
     """Return normalized CORS origins from env or safe defaults."""
     raw = os.getenv("ALLOWED_ORIGINS", "").strip()
     if raw:
-        return [o.strip().rstrip("/") for o in raw.split(",") if o.strip()]
-    return [
+        configured = [o.strip().rstrip("/") for o in raw.split(",") if o.strip()]
+        return _with_loopback_variants(configured)
+
+    defaults = [
         "http://localhost:8000",
         "http://localhost:5173",
         "http://localhost:3000",
         "https://manhwa-rank.vercel.app",
     ]
+    return _with_loopback_variants(defaults)
 
 
 @asynccontextmanager

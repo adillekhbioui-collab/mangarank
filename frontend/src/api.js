@@ -1,4 +1,7 @@
-export const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const runtimeHostname = typeof window !== 'undefined' ? window.location.hostname : '';
+const loopbackHost = runtimeHostname === '127.0.0.1' ? '127.0.0.1' : 'localhost';
+
+export const API_BASE = import.meta.env.VITE_API_BASE_URL || `http://${loopbackHost}:8000`;
 
 export async function fetchManga({ genre_include, genre_exclude, author, min_chapters, status, sort_by, has_completion_data, limit, page }) {
     const params = new URLSearchParams();
