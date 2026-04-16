@@ -353,9 +353,9 @@ function QuickActions() {
             href: 'https://supabase.com/dashboard',
         },
         {
-            label: 'Render Logs',
-            desc: 'Monitor backend deploy and runtime',
-            href: 'https://dashboard.render.com',
+            label: 'Droplet Console',
+            desc: 'Inspect backend runtime on DigitalOcean',
+            href: 'https://cloud.digitalocean.com/droplets',
         },
     ];
 

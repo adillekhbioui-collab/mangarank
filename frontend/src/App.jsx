@@ -214,9 +214,9 @@ function UnifiedGenrePicker({
         : sortedGenres
 
     return (
-        <div className="filter-section border-b border-border py-3">
+        <div className="filter-section border-b border-border/80 py-2.5">
             <div className="filter-header-row mb-2 flex items-center justify-between">
-                <div className="filter-label mb-0 font-mono text-[11px] uppercase tracking-[0.12em] text-text-secondary">Genres</div>
+                <div className="filter-label mb-0 font-mono text-[11px] uppercase tracking-[0.12em] text-text-primary/80">Genres</div>
                 {hasActiveFilters && (
                     <button
                         type="button"
@@ -265,7 +265,7 @@ function UnifiedGenrePicker({
 
             <button
                 type="button"
-                className="genre-grid-toggle flex h-11 w-full items-center justify-between border border-border bg-surface px-3 font-mono text-[11px] uppercase tracking-[0.12em] text-text-secondary"
+                className="genre-grid-toggle flex h-10 w-full items-center justify-between border border-border/90 bg-surface px-3 font-mono text-[11px] uppercase tracking-[0.12em] text-text-primary/85"
                 onClick={() => setIsExpanded(!isExpanded)}
             >
                 {isExpanded ? 'Hide Genres' : 'Show All Genres'}
@@ -275,7 +275,7 @@ function UnifiedGenrePicker({
             {isExpanded && (
                 <div className="genre-grid-container mt-2">
                     <input
-                        className="genre-grid-search h-10 w-full border border-border bg-surface px-3 text-sm text-text-primary placeholder:text-text-ghost"
+                        className="genre-grid-search h-9 w-full border border-border/90 bg-surface px-3 text-xs text-text-primary placeholder:text-text-ghost"
                         placeholder="Filter genres..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
@@ -308,7 +308,7 @@ function UnifiedGenrePicker({
                                 <button
                                     key={g}
                                     type="button"
-                                    className={`genre-chip min-h-11 rounded border px-2 py-1 text-left text-[11px] leading-tight ${chipTone}`}
+                                    className={`genre-chip min-h-10 rounded border px-2 py-1 text-left text-[11px] leading-tight ${chipTone}`}
                                     onClick={() => onToggleState(g)}
                                     title={stateClass === 'default-exclude' ? 'Excluded by default (click to include)' : ''}
                                 >
@@ -317,7 +317,7 @@ function UnifiedGenrePicker({
                             )
                         })}
                     </div>
-                    <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.08em] text-text-ghost">
+                    <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.08em] text-text-secondary/80">
                         Include max: {maxInclude} • Exclude max: {maxExclude}
                     </div>
                 </div>
@@ -793,8 +793,8 @@ function HomePage({ initialTopTab = 'browse' }) {
                 maxExclude={MAX_EXCLUDE_GENRES}
             />
 
-            <div className="filter-section border-b border-border py-3">
-                <div className="filter-label mb-2 font-mono text-[11px] uppercase tracking-[0.12em] text-text-secondary">Status</div>
+            <div className="filter-section border-b border-border/80 py-2.5">
+                <div className="filter-label mb-2 font-mono text-[11px] uppercase tracking-[0.12em] text-text-primary/80">Status</div>
                 <div className="grid grid-cols-3 gap-1.5 lg:hidden">
                     {['', 'ongoing', 'completed'].map((v) => (
                         <button
@@ -821,9 +821,9 @@ function HomePage({ initialTopTab = 'browse' }) {
                 </div>
             </div>
 
-            <div className="filter-section border-b border-border py-3">
-                <div className="filter-label mb-2 font-mono text-[11px] uppercase tracking-[0.12em] text-text-secondary">Sort By</div>
-                <select className="filter-select h-11 w-full border border-border bg-surface px-3 text-sm text-text-primary" value={sortBy} onChange={(e) => updateMainFilters({ sort_by: e.target.value })}>
+            <div className="filter-section border-b border-border/80 py-2.5">
+                <div className="filter-label mb-2 font-mono text-[11px] uppercase tracking-[0.12em] text-text-primary/80">Sort By</div>
+                <select className="filter-select h-10 w-full border border-border/90 bg-surface px-3 text-sm text-text-primary" value={sortBy} onChange={(e) => updateMainFilters({ sort_by: e.target.value })}>
                     <option value="score">Best Score</option>
                     <option value="views">Most Popular</option>
                     <option value="chapters">Most Chapters</option>
@@ -831,8 +831,8 @@ function HomePage({ initialTopTab = 'browse' }) {
                 </select>
             </div>
 
-            <div className="filter-section py-3" style={{ borderBottom: 'none' }}>
-                <div className="filter-label filter-label-row mb-2 flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.12em] text-text-secondary">
+            <div className="filter-section py-2.5" style={{ borderBottom: 'none' }}>
+                <div className="filter-label filter-label-row mb-2 flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.12em] text-text-primary/80">
                     <span>Min Chapters</span>
                     <span className="mobile-value-badge rounded bg-background px-2 py-0.5 text-[10px] text-text-primary lg:hidden">{minChapters}</span>
                 </div>
@@ -846,7 +846,7 @@ function HomePage({ initialTopTab = 'browse' }) {
                     onChange={(e) => handleMinChaptersChange(e.target.value)}
                 />
                 <input
-                    className="filter-number hidden w-full border border-border bg-surface px-3 py-2 text-sm text-text-primary lg:block"
+                    className="filter-number hidden h-10 w-full border border-border/90 bg-surface px-3 py-2 text-sm text-text-primary lg:block"
                     type="number"
                     min="0"
                     value={minChaptersInput}
@@ -933,9 +933,9 @@ function HomePage({ initialTopTab = 'browse' }) {
                         </button>
                     </div>
 
-                    <div className="mt-2 flex items-center gap-2 md:mt-0">
+                    <div className="mt-2 flex items-center gap-2 md:mt-0 md:ml-auto">
                         <input
-                            className="h-11 w-full border-b border-border bg-surface px-3 py-1.5 text-sm text-text-primary outline-none transition-colors placeholder:text-text-secondary focus:border-accent-red md:h-auto md:w-[210px] md:text-xs lg:w-[260px]"
+                            className="h-11 w-full border border-border bg-surface px-3 py-1.5 text-sm text-text-primary outline-none transition-colors placeholder:text-text-secondary focus:border-accent-red md:h-9 md:w-[230px] md:text-xs lg:w-[290px]"
                             type="text"
                             placeholder="Search titles..."
                             value={searchInput}
@@ -944,10 +944,10 @@ function HomePage({ initialTopTab = 'browse' }) {
                             onBlur={commitSearch}
                             onKeyDown={handleSearchKeyDown}
                         />
-                        <div className="hidden items-center gap-1.5 md:flex">
+                        <div className="hidden items-center gap-2 md:flex [&_.auth-btn--signin]:ml-0 [&_.auth-btn--signin]:h-9 [&_.auth-btn--signin]:px-2.5 [&_.auth-btn--signin]:py-0 [&_.auth-user-menu]:ml-0 [&_.auth-avatar-btn]:h-9 [&_.auth-avatar-btn]:w-9">
                             <AuthButton />
                             <button
-                                className="border border-border bg-surface px-2.5 py-1.5 font-mono text-[11px] tracking-[0.08em] text-text-secondary transition-colors hover:text-text-primary"
+                                className="h-9 min-w-[92px] border border-border bg-surface px-2.5 py-0 font-mono text-[11px] tracking-[0.08em] text-text-secondary transition-colors hover:text-text-primary"
                                 onClick={toggleTheme}
                             >
                                 {isDark ? '○ LIGHT' : '● DARK'}
@@ -959,11 +959,11 @@ function HomePage({ initialTopTab = 'browse' }) {
 
             {topTab === 'browse' && (
                 <>
-                    <div className="category-strip flex gap-3 overflow-x-auto border-b border-border px-3 py-4 md:px-6">
+                    <div className="category-strip flex gap-3 overflow-x-auto border-b border-border px-3 py-3.5 md:px-6 md:py-4">
                         {QUICK_FILTERS.map(({ label, category: quickCategory, desc }) => (
                             <div
                                 key={quickCategory}
-                                className={`category-card min-w-[176px] cursor-pointer border-l-4 px-4 py-3 transition-colors ${activeQuickFilter === quickCategory ? 'active border-black bg-white text-black' : 'border-border bg-surface text-text-primary hover:bg-elevated'}`}
+                                className={`category-card group relative min-w-[176px] cursor-pointer overflow-hidden border border-border/70 border-l-4 px-4 py-3 transition-all duration-200 ${activeQuickFilter === quickCategory ? 'border-accent-red/55 bg-elevated shadow-[inset_0_1px_0_rgba(193,18,31,0.35)]' : 'bg-surface text-text-primary hover:-translate-y-0.5 hover:border-accent-red/35 hover:bg-elevated/90'}`}
                                 data-cat={quickCategory}
                                 onClick={() => handleQuickFilter(quickCategory)}
                                 onMouseEnter={(e) => {
@@ -977,8 +977,11 @@ function HomePage({ initialTopTab = 'browse' }) {
                                 }}
                                 onMouseLeave={() => setCategoryTooltip(null)}
                             >
-                                <div className="cat-name font-mono text-xs uppercase tracking-[0.12em]">{label.replace(/[^a-zA-Z\s]/g, '').trim()}</div>
-                                <div className="cat-count mt-1 text-[10px] uppercase tracking-[0.1em] text-text-secondary">VIEW CATEGORY</div>
+                                <span
+                                    className={`pointer-events-none absolute inset-x-0 top-0 h-px transition-opacity ${activeQuickFilter === quickCategory ? 'bg-gradient-to-r from-transparent via-accent-red/80 to-transparent opacity-100' : 'bg-gradient-to-r from-transparent via-text-primary/25 to-transparent opacity-0 group-hover:opacity-100'}`}
+                                />
+                                <div className={`cat-name font-mono text-xs uppercase tracking-[0.12em] ${activeQuickFilter === quickCategory ? 'text-text-primary' : 'text-text-primary/90 group-hover:text-text-primary'}`}>{label.replace(/[^a-zA-Z\s]/g, '').trim()}</div>
+                                <div className={`cat-count mt-1 text-[10px] uppercase tracking-[0.1em] ${activeQuickFilter === quickCategory ? 'text-accent-gold' : 'text-text-secondary group-hover:text-text-primary/80'}`}>VIEW CATEGORY</div>
                             </div>
                         ))}
                     </div>
@@ -1060,7 +1063,7 @@ function HomePage({ initialTopTab = 'browse' }) {
                             )}
                         </AnimatePresence>
 
-                        <aside className="filter-panel hidden w-full border border-border bg-elevated p-4 lg:sticky lg:top-[76px] lg:block lg:max-h-[calc(100vh-96px)] lg:max-w-[320px] lg:overflow-y-auto">
+                        <aside className="filter-panel hidden w-full border border-border bg-elevated p-3.5 lg:sticky lg:top-[76px] lg:block lg:max-h-[calc(100vh-96px)] lg:max-w-[320px] lg:overflow-y-auto">
                             {filterPanelInner}
                         </aside>
 
