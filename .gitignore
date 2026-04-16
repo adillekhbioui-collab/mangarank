@@ -13,6 +13,10 @@ frontend/node_modules/
 # Build outputs
 frontend/dist/
 dist/
+logo*.png
+logo*.PNG
+
+
 
 # Local caches and generated files
 .cache/
