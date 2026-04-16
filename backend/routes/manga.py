@@ -23,6 +23,76 @@ from backend.constants import (
 router = APIRouter(tags=["manga"])
 
 
+SOURCE_LINK_CONFIG = {
+    "mangadex": {
+        "label": "MangaDex",
+        "template": "https://mangadex.org/title/{id}",
+        "priority": 0,
+    },
+    "anilist": {
+        "label": "AniList",
+        "template": "https://anilist.co/manga/{id}",
+        "priority": 1,
+    },
+    "mal": {
+        "label": "MyAnimeList",
+        "template": "https://myanimelist.net/manga/{id}",
+        "priority": 2,
+    },
+    "kitsu": {
+        "label": "Kitsu",
+        "template": "https://kitsu.io/manga/{id}",
+        "priority": 3,
+    },
+}
+
+
+def _normalize_cross_link_token(raw: str | None) -> str:
+    value = (raw or "").strip().lower()
+    # Keep source:id token shape only.
+    return re.sub(r"[^a-z0-9:_-]", "", value)
+
+
+def _build_source_url(source_site: str, external_id: str) -> str | None:
+    source = (source_site or "").strip().lower()
+    ext_id = (external_id or "").strip()
+    if not source or not ext_id:
+        return None
+
+    if source in {"anilist", "mal"}:
+        if not re.fullmatch(r"\d{1,20}", ext_id):
+            return None
+    elif source == "mangadex":
+        if not re.fullmatch(r"[a-zA-Z0-9-]{8,64}", ext_id):
+            return None
+    elif source == "kitsu":
+        if not re.fullmatch(r"[a-zA-Z0-9-]{1,80}", ext_id):
+            return None
+    else:
+        return None
+
+    config = SOURCE_LINK_CONFIG.get(source)
+    if not config:
+        return None
+
+    return config["template"].format(id=ext_id)
+
+
+async def _get_manga_raw_rows(filters: dict[str, str], limit: int = 200) -> list[dict]:
+    select = "id,title,source_site,external_id,mal_cross_id,cross_link_ids,alt_titles"
+    params = {
+        "select": select,
+        "limit": str(limit),
+    }
+    params.update(filters)
+
+    r = await deps.sb_get("manga_raw", params=params)
+    if r.status_code not in (200, 206):
+        raise HTTPException(status_code=502, detail="Failed to fetch source links from Supabase.")
+
+    return r.json()
+
+
 # ── GET /manga — paginated, filterable, sortable list ────────
 
 def sanitize_param(val: str) -> str:
@@ -117,6 +187,124 @@ async def get_similar_manga_endpoint(request: Request, title: str, response: Res
         raise HTTPException(status_code=502, detail="Failed to fetch similar manga.")
 
     result = {"results": r.json()}
+    deps.cache_set(cache_key, result)
+    return result
+
+
+# ── GET /manga/{title}/sources — external source links ───────
+
+@router.get("/manga/{title}/sources")
+@deps.limiter.limit("100/minute")
+async def get_manga_sources(request: Request, title: str, response: Response):
+    """Return external source links for a manga title using manga_raw link metadata."""
+    response.headers["Cache-Control"] = "public, max-age=600"
+
+    clean_title = (title or "").strip()
+    if not clean_title:
+        raise HTTPException(status_code=404, detail="Manga title is required.")
+
+    cache_key = f"manga_sources:{clean_title.lower()}"
+    cached = deps.cache_get(cache_key)
+    if cached is not None:
+        return cached
+
+    seen_keys: set[str] = set()
+    collected_rows: list[dict] = []
+
+    def _add_rows(rows: list[dict]):
+        for row in rows:
+            source = (row.get("source_site") or "").strip().lower()
+            ext_id = (row.get("external_id") or "").strip().lower()
+            row_title = (row.get("title") or "").strip().lower()
+            key = f"{source}:{ext_id}:{row_title}"
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
+            collected_rows.append(row)
+
+    # Seed by exact detail title.
+    _add_rows(await _get_manga_raw_rows({"title": f"eq.{clean_title}"}, limit=120))
+
+    # Expand by alt titles from ranking record if seed is sparse.
+    if len(collected_rows) <= 1:
+        ranking = await deps.sb_get(
+            "manga_rankings",
+            params={
+                "select": "alt_titles",
+                "title": f"eq.{clean_title}",
+                "limit": "1",
+            },
+        )
+        if ranking.status_code not in (200, 206):
+            raise HTTPException(status_code=502, detail="Failed to fetch source links from Supabase.")
+
+        ranking_rows = ranking.json()
+        if ranking_rows:
+            alt_titles = ranking_rows[0].get("alt_titles") or []
+            for alt_title in alt_titles[:8]:
+                if not isinstance(alt_title, str):
+                    continue
+                alt = alt_title.strip()
+                if not alt:
+                    continue
+                _add_rows(await _get_manga_raw_rows({"title": f"eq.{alt}"}, limit=80))
+
+    # Expand by MAL bridge id.
+    mal_cross_ids = {
+        str(row.get("mal_cross_id") or "").strip()
+        for row in collected_rows
+        if str(row.get("mal_cross_id") or "").strip()
+    }
+    for mal_id in sorted(mal_cross_ids):
+        _add_rows(await _get_manga_raw_rows({"mal_cross_id": f"eq.{mal_id}"}, limit=200))
+
+    # Expand by normalized cross-link tokens.
+    cross_tokens: set[str] = set()
+    for row in collected_rows:
+        for token in (row.get("cross_link_ids") or []):
+            if not isinstance(token, str):
+                continue
+            clean_token = _normalize_cross_link_token(token)
+            if clean_token:
+                cross_tokens.add(clean_token)
+
+    for token in sorted(cross_tokens)[:40]:
+        _add_rows(await _get_manga_raw_rows({"cross_link_ids": f"cs.{{{token}}}"}, limit=200))
+
+    # Build one canonical link per source.
+    source_links: dict[str, dict] = {}
+    for row in collected_rows:
+        source = (row.get("source_site") or "").strip().lower()
+        ext_id = (row.get("external_id") or "").strip()
+        if source not in SOURCE_LINK_CONFIG or not ext_id:
+            continue
+
+        url = _build_source_url(source, ext_id)
+        if not url:
+            continue
+
+        if source in source_links:
+            continue
+
+        config = SOURCE_LINK_CONFIG[source]
+        source_links[source] = {
+            "source": source,
+            "label": config["label"],
+            "url": url,
+            "external_id": ext_id,
+            "priority": config["priority"],
+        }
+
+    ordered_links = sorted(source_links.values(), key=lambda item: (item["priority"], item["label"]))
+    for item in ordered_links:
+        item.pop("priority", None)
+
+    result = {
+        "title": clean_title,
+        "count": len(ordered_links),
+        "sources": ordered_links,
+    }
+
     deps.cache_set(cache_key, result)
     return result
 

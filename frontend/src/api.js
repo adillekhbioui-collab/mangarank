@@ -22,6 +22,13 @@ export async function fetchMangaByTitle(title) {
     return res.json();
 }
 
+export async function fetchMangaSources(title) {
+    const res = await fetch(`${API_BASE}/manga/${encodeURIComponent(title)}/sources`);
+    if (!res.ok) throw new Error('Failed to fetch manga source links');
+    const data = await res.json();
+    return data.sources || [];
+}
+
 export async function fetchGenres() {
     const res = await fetch(`${API_BASE}/genres`);
     if (!res.ok) throw new Error('Failed to fetch genres');

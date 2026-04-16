@@ -1027,6 +1027,100 @@ button {
   padding-bottom: 2px;
 }
 
+.detail-sources-wrap {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.detail-sources-label {
+  font-family: var(--font-data);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--text-ghost);
+  margin-bottom: 8px;
+}
+
+.detail-sources-subtext {
+  font-family: var(--font-data);
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.detail-sources-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .detail-sources-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.detail-source-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  padding: 10px 12px;
+  transition: border-color .15s ease, background-color .15s ease, transform .15s ease;
+}
+
+.detail-source-link:hover {
+  border-color: var(--accent-red);
+  background: var(--bg-elevated);
+  transform: translateY(-1px);
+}
+
+.detail-source-name {
+  font-family: var(--font-data);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+.detail-source-cta {
+  font-family: var(--font-data);
+  font-size: 10px;
+  color: var(--text-secondary);
+  letter-spacing: 0.08em;
+}
+
+.detail-source-skeleton {
+  height: 40px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  position: relative;
+  overflow: hidden;
+}
+
+.detail-source-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--bg-elevated), transparent);
+  animation: shimmer 1.4s infinite linear;
+}
+
+.detail-sources-empty {
+  font-family: var(--font-data);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.detail-sources-disclaimer {
+  margin-top: 10px;
+  font-family: var(--font-data);
+  font-size: 10px;
+  color: var(--text-ghost);
+}
+
 /* Similar Manga Section */
 .similar-section {
   margin-top: 64px;

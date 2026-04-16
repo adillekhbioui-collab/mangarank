@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useTheme } from './hooks/useTheme.js'
 
 import { useParams, Link } from 'react-router-dom'
-import { fetchMangaByTitle, API_BASE } from './api'
+import { fetchMangaByTitle, fetchMangaSources, API_BASE } from './api'
 import { useAnalytics } from './hooks/useAnalytics.js'
 import SimilarManga from './SimilarManga.jsx'
 import { WatchlistButton } from './components/WatchlistButton.jsx'
@@ -14,20 +14,55 @@ export default function MangaDetailPage() {
     const [manga, setManga] = useState(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
+    const [sourceLinks, setSourceLinks] = useState([])
+    const [sourceLinksLoading, setSourceLinksLoading] = useState(true)
     const [synopsisExpanded, setSynopsisExpanded] = useState(false)
     const [isHeaderHidden, setIsHeaderHidden] = useState(false)
     const lastScrollYRef = useRef(0)
     const scrollFrameRef = useRef(null)
 
     useEffect(() => {
+        let cancelled = false
+        const resolvedTitle = decodeURIComponent(title)
+
         setLoading(true)
         setError(null)
         setManga(null)
+        setSourceLinks([])
+        setSourceLinksLoading(true)
         setSynopsisExpanded(false)
-        fetchMangaByTitle(decodeURIComponent(title))
-            .then(data => setManga(data))
-            .catch(err => setError(err.message))
-            .finally(() => setLoading(false))
+
+        fetchMangaByTitle(resolvedTitle)
+            .then(data => {
+                if (cancelled) return
+                setManga(data)
+            })
+            .catch(err => {
+                if (cancelled) return
+                setError(err.message)
+            })
+            .finally(() => {
+                if (cancelled) return
+                setLoading(false)
+            })
+
+        fetchMangaSources(resolvedTitle)
+            .then(links => {
+                if (cancelled) return
+                setSourceLinks(Array.isArray(links) ? links : [])
+            })
+            .catch(() => {
+                if (cancelled) return
+                setSourceLinks([])
+            })
+            .finally(() => {
+                if (cancelled) return
+                setSourceLinksLoading(false)
+            })
+
+        return () => {
+            cancelled = true
+        }
     }, [title])
 
     useEffect(() => {
@@ -197,6 +232,47 @@ export default function MangaDetailPage() {
                                 </button>
                             </>
                         )}
+
+                        <section className="detail-sources-wrap" aria-labelledby="detail-sources-title">
+                            <h2 id="detail-sources-title" className="detail-sources-label">WHERE TO READ</h2>
+                            <p className="detail-sources-subtext">
+                                Direct links to source pages for this title.
+                            </p>
+
+                            {sourceLinksLoading && (
+                                <div className="detail-sources-grid" aria-hidden="true">
+                                    <div className="detail-source-skeleton" />
+                                    <div className="detail-source-skeleton" />
+                                </div>
+                            )}
+
+                            {!sourceLinksLoading && sourceLinks.length > 0 && (
+                                <div className="detail-sources-grid">
+                                    {sourceLinks.map((link) => (
+                                        <a
+                                            key={`${link.source}-${link.external_id}`}
+                                            className="detail-source-link"
+                                            href={link.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            <span className="detail-source-name">{link.label}</span>
+                                            <span className="detail-source-cta">OPEN ↗</span>
+                                        </a>
+                                    ))}
+                                </div>
+                            )}
+
+                            {!sourceLinksLoading && sourceLinks.length === 0 && (
+                                <p className="detail-sources-empty">
+                                    No source links are available for this title yet.
+                                </p>
+                            )}
+
+                            <p className="detail-sources-disclaimer">
+                                Links open external source pages. We do not host manga content.
+                            </p>
+                        </section>
                     </div>
                 </div>
 
