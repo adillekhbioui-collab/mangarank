@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useTheme } from './hooks/useTheme.js'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 
-import { Routes, Route, Link, useSearchParams } from 'react-router-dom'
-import { fetchManga, fetchGenres, fetchBlacklistedGenres, fetchTopCategory } from './api'
+import { Routes, Route, Link, useLocation, useSearchParams } from 'react-router-dom'
+import { fetchManga, fetchGenres, fetchBlacklistedGenres, fetchTopCategory, submitFeedback } from './api'
 import { useAnalytics } from './hooks/useAnalytics.js'
 import MangaDetailPage from './MangaDetailPage.jsx'
 import AdminPage from './pages/AdminPage.jsx'
@@ -54,6 +54,62 @@ const DEFAULT_FILTERS = {
     category: '',
 }
 
+const TOUR_STORAGE_KEY = 'manhwarank-tour-completed'
+const FEEDBACK_NOTICE_DURATION_MS = 2600
+
+const DEFAULT_FEEDBACK_FORM = {
+    feedback_type: 'general',
+    message: '',
+    email: '',
+    website: '',
+}
+
+const TOUR_STEPS_DESKTOP = [
+    {
+        key: 'score-trust',
+        selector: '[data-tour="score-trust"]',
+        copy: 'Scores blend AniList, MAL, MangaDex, and Kitsu so one source cannot dominate the ranking.',
+    },
+    {
+        key: 'category-strip',
+        selector: '[data-tour="category-strip"]',
+        copy: 'These top strips are behavioral lanes like Masterpieces and Hard to Finish, not simple genres.',
+    },
+    {
+        key: 'genre-mix',
+        selector: '[data-tour="genre-picker"]',
+        copy: 'Genre toggles are tri-state: include, exclude, or neutral so you can shape very precise lists.',
+    },
+    {
+        key: 'charts-map',
+        selector: '[data-tour="charts-tab"]',
+        copy: 'Open CHARTS anytime to explore the live genre-relationship map and jump back into browse filters.',
+    },
+]
+
+const TOUR_STEPS_MOBILE = [
+    {
+        key: 'score-trust',
+        selector: '[data-tour="score-trust"]',
+        copy: 'Scores blend AniList, MAL, MangaDex, and Kitsu so one source cannot dominate the ranking.',
+    },
+    {
+        key: 'category-strip',
+        selector: '[data-tour="category-strip"]',
+        copy: 'These top strips are behavioral lanes like Masterpieces and Hard to Finish, not simple genres.',
+    },
+    {
+        key: 'mobile-filter',
+        selector: '[data-tour="mobile-filter-btn"]',
+        copy: 'Tap FILTER, then tap a genre to include it and tap again to move it into exclude mode.',
+    },
+    {
+        key: 'charts-map',
+        selector: '[data-tour="charts-tab"]',
+        copy: 'Open CHARTS anytime to explore the live genre-relationship map and jump back into browse filters.',
+    },
+]
+
 function AppLogo({ isDark, onClick }) {
     const [hasError, setHasError] = useState(false)
     const src = isDark ? '/logo-dark.svg' : '/logo-light.svg'
@@ -101,6 +157,22 @@ function normalizeGenres(values, allowedGenresSet, blockedGenresSet, maxGenres =
     })
 
     return out
+}
+
+function findVisibleTourTarget(selector) {
+    const candidates = Array.from(document.querySelectorAll(selector))
+
+    for (const node of candidates) {
+        const rect = node.getBoundingClientRect()
+        if (rect.width <= 0 || rect.height <= 0) continue
+
+        const style = window.getComputedStyle(node)
+        if (style.display === 'none' || style.visibility === 'hidden') continue
+
+        return node
+    }
+
+    return null
 }
 
 function getFiltersFromURL(searchParams, genres, blacklistedGenres) {
@@ -214,7 +286,7 @@ function UnifiedGenrePicker({
         : sortedGenres
 
     return (
-        <div className="filter-section border-b border-border/80 py-2.5">
+        <div className="filter-section border-b border-border/80 py-2.5" data-tour="genre-picker">
             <div className="filter-header-row mb-2 flex items-center justify-between">
                 <div className="filter-label mb-0 font-mono text-[11px] uppercase tracking-[0.12em] text-text-primary/80">Genres</div>
                 {hasActiveFilters && (
@@ -326,11 +398,26 @@ function UnifiedGenrePicker({
     )
 }
 function HomePage({ initialTopTab = 'browse' }) {
+    const location = useLocation()
     const [searchParams, setSearchParams] = useSearchParams()
     const { theme, toggleTheme, isDark } = useTheme()
     const { track } = useAnalytics()
     const [topTab, setTopTab] = useState(initialTopTab)
     const [isHeaderHidden, setIsHeaderHidden] = useState(false)
+
+    const [comingSoonHint, setComingSoonHint] = useState(null)
+    const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
+    const [feedbackForm, setFeedbackForm] = useState(DEFAULT_FEEDBACK_FORM)
+    const [feedbackStatus, setFeedbackStatus] = useState('idle')
+    const [feedbackError, setFeedbackError] = useState('')
+    const [feedbackNotice, setFeedbackNotice] = useState('')
+
+    const [viewportWidth, setViewportWidth] = useState(
+        typeof window !== 'undefined' ? window.innerWidth : 1280,
+    )
+    const [tourMode, setTourMode] = useState('idle')
+    const [tourStepIndex, setTourStepIndex] = useState(0)
+    const [tourTargetRect, setTourTargetRect] = useState(null)
 
     // ── Local UI state ──
     const [viewMode, setViewMode] = useState('list')
@@ -370,6 +457,19 @@ function HomePage({ initialTopTab = 'browse' }) {
     const filterTrackReadyRef = useRef(false)
     const lastScrollYRef = useRef(0)
     const scrollFrameRef = useRef(null)
+    const comingSoonTimeoutRef = useRef(null)
+    const comingSoonRef = useRef(null)
+    const feedbackLayerRef = useRef(null)
+    const feedbackNoticeTimeoutRef = useRef(null)
+
+    const isFirstVisitRoute = location.pathname === '/'
+    const isTourActive = tourMode === 'active'
+    const isTourPromptVisible = tourMode === 'prompt'
+    const isMobileViewport = viewportWidth < 1024
+    const tourSteps = useMemo(
+        () => (isMobileViewport ? TOUR_STEPS_MOBILE : TOUR_STEPS_DESKTOP),
+        [isMobileViewport],
+    )
 
     const filters = useMemo(
         () => getFiltersFromURL(searchParams, genres, blacklistedGenres),
@@ -508,6 +608,113 @@ function HomePage({ initialTopTab = 'browse' }) {
         }
     }
 
+    const resetFeedbackForm = useCallback(() => {
+        setFeedbackForm({ ...DEFAULT_FEEDBACK_FORM })
+    }, [])
+
+    const closeFeedbackPanel = useCallback(() => {
+        setIsFeedbackOpen(false)
+        setFeedbackStatus('idle')
+        setFeedbackError('')
+        resetFeedbackForm()
+    }, [resetFeedbackForm])
+
+    const toggleFeedbackPanel = useCallback(() => {
+        if (isTourActive) return
+
+        if (isFeedbackOpen) {
+            closeFeedbackPanel()
+            return
+        }
+
+        setComingSoonHint(null)
+        setFeedbackStatus('idle')
+        setFeedbackError('')
+        setIsFeedbackOpen(true)
+    }, [isTourActive, isFeedbackOpen, closeFeedbackPanel])
+
+    const showComingSoon = useCallback((label, event) => {
+        if (isTourActive) return
+
+        closeFeedbackPanel()
+
+        const rect = event.currentTarget.getBoundingClientRect()
+        setComingSoonHint({
+            message: `${label} is coming soon`,
+            left: rect.left + (rect.width / 2),
+            top: rect.bottom + 12,
+        })
+    }, [isTourActive, closeFeedbackPanel])
+
+    const handleFeedbackSubmit = useCallback(async (event) => {
+        event.preventDefault()
+        if (feedbackStatus === 'sending') return
+
+        const trimmedMessage = feedbackForm.message.trim()
+        if (!trimmedMessage) {
+            setFeedbackError('Please write a message before sending.')
+            return
+        }
+
+        setFeedbackStatus('sending')
+        setFeedbackError('')
+
+        try {
+            await submitFeedback({
+                feedback_type: feedbackForm.feedback_type,
+                message: trimmedMessage,
+                email: feedbackForm.email.trim() || null,
+                page: `${location.pathname}${location.search}`,
+                website: feedbackForm.website,
+            })
+
+            track('feedback_submit', {
+                metadata: {
+                    type: feedbackForm.feedback_type,
+                },
+            })
+
+            closeFeedbackPanel()
+            setFeedbackNotice('Feedback received. Thank you.')
+        } catch (err) {
+            const message = err?.message || 'Could not send feedback right now. Please try again shortly.'
+            setFeedbackStatus('error')
+            setFeedbackError(message)
+        }
+    }, [feedbackForm, feedbackStatus, location.pathname, location.search, closeFeedbackPanel, track])
+
+    const markTourCompleted = useCallback(() => {
+        try {
+            window.localStorage.setItem(TOUR_STORAGE_KEY, 'true')
+        } catch {
+            // Ignore localStorage write failures.
+        }
+        setTourMode('idle')
+        setTourStepIndex(0)
+        setTourTargetRect(null)
+    }, [])
+
+    const handleTourSkip = useCallback(() => {
+        markTourCompleted()
+    }, [markTourCompleted])
+
+    const handleTourStart = useCallback(() => {
+        setTopTab('browse')
+        setIsMobileFilterOpen(false)
+        setComingSoonHint(null)
+        closeFeedbackPanel()
+        setTourStepIndex(0)
+        setTourMode('active')
+    }, [closeFeedbackPanel])
+
+    const handleTourNext = useCallback(() => {
+        if (tourStepIndex >= tourSteps.length - 1) {
+            markTourCompleted()
+            return
+        }
+        setTourStepIndex((prev) => prev + 1)
+    }, [tourStepIndex, tourSteps.length, markTourCompleted])
+
     // ── Load genres and blacklist defaults on mount ──
     useEffect(() => {
         let mounted = true
@@ -547,6 +754,150 @@ function HomePage({ initialTopTab = 'browse' }) {
             if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
         }
     }, [])
+
+    useEffect(() => {
+        const onResize = () => setViewportWidth(window.innerWidth)
+        window.addEventListener('resize', onResize)
+        return () => window.removeEventListener('resize', onResize)
+    }, [])
+
+    useEffect(() => {
+        if (!isFirstVisitRoute) {
+            setTourMode('idle')
+            return
+        }
+
+        let hasCompletedTour = false
+        try {
+            hasCompletedTour = window.localStorage.getItem(TOUR_STORAGE_KEY) === 'true'
+        } catch {
+            hasCompletedTour = false
+        }
+
+        if (hasCompletedTour) {
+            setTourMode('idle')
+            return
+        }
+
+        setTourMode((current) => (current === 'active' ? current : 'prompt'))
+    }, [isFirstVisitRoute])
+
+    useEffect(() => {
+        if (!isTourActive) return
+        if (tourStepIndex < tourSteps.length) return
+        setTourStepIndex(0)
+    }, [isTourActive, tourStepIndex, tourSteps.length])
+
+    useEffect(() => {
+        if (!isTourActive) {
+            setTourTargetRect(null)
+            return
+        }
+
+        const step = tourSteps[tourStepIndex]
+        if (!step) {
+            setTourTargetRect(null)
+            return
+        }
+
+        const updateTargetRect = () => {
+            const target = findVisibleTourTarget(step.selector)
+            if (!target) {
+                setTourTargetRect(null)
+                return
+            }
+
+            const rect = target.getBoundingClientRect()
+            setTourTargetRect({
+                left: rect.left,
+                top: rect.top,
+                width: rect.width,
+                height: rect.height,
+                bottom: rect.bottom,
+            })
+        }
+
+        const target = findVisibleTourTarget(step.selector)
+        if (target) {
+            target.scrollIntoView({ block: 'center', behavior: reduceMotion ? 'auto' : 'smooth' })
+        }
+
+        updateTargetRect()
+        window.addEventListener('resize', updateTargetRect)
+        window.addEventListener('scroll', updateTargetRect, true)
+
+        return () => {
+            window.removeEventListener('resize', updateTargetRect)
+            window.removeEventListener('scroll', updateTargetRect, true)
+        }
+    }, [isTourActive, tourStepIndex, tourSteps, reduceMotion, topTab, isMobileFilterOpen, loading])
+
+    useEffect(() => {
+        if (!comingSoonHint) return
+
+        if (comingSoonTimeoutRef.current) {
+            clearTimeout(comingSoonTimeoutRef.current)
+        }
+
+        comingSoonTimeoutRef.current = setTimeout(() => {
+            setComingSoonHint(null)
+        }, 2200)
+
+        return () => {
+            if (comingSoonTimeoutRef.current) {
+                clearTimeout(comingSoonTimeoutRef.current)
+                comingSoonTimeoutRef.current = null
+            }
+        }
+    }, [comingSoonHint])
+
+    useEffect(() => {
+        if (!comingSoonHint) return
+
+        const onPointerDown = (event) => {
+            const target = event.target instanceof Element ? event.target : null
+            if (!target) return
+            if (comingSoonRef.current?.contains(target)) return
+            if (target.closest('[data-coming-soon-trigger="true"]')) return
+            setComingSoonHint(null)
+        }
+
+        document.addEventListener('pointerdown', onPointerDown)
+        return () => document.removeEventListener('pointerdown', onPointerDown)
+    }, [comingSoonHint])
+
+    useEffect(() => {
+        if (!isFeedbackOpen) return
+
+        const onPointerDown = (event) => {
+            const target = event.target instanceof Element ? event.target : null
+            if (!target) return
+            if (feedbackLayerRef.current?.contains(target)) return
+            closeFeedbackPanel()
+        }
+
+        document.addEventListener('pointerdown', onPointerDown)
+        return () => document.removeEventListener('pointerdown', onPointerDown)
+    }, [isFeedbackOpen, closeFeedbackPanel])
+
+    useEffect(() => {
+        if (!feedbackNotice) return
+
+        if (feedbackNoticeTimeoutRef.current) {
+            clearTimeout(feedbackNoticeTimeoutRef.current)
+        }
+
+        feedbackNoticeTimeoutRef.current = setTimeout(() => {
+            setFeedbackNotice('')
+        }, FEEDBACK_NOTICE_DURATION_MS)
+
+        return () => {
+            if (feedbackNoticeTimeoutRef.current) {
+                clearTimeout(feedbackNoticeTimeoutRef.current)
+                feedbackNoticeTimeoutRef.current = null
+            }
+        }
+    }, [feedbackNotice])
 
     useEffect(() => {
         document.body.classList.toggle('sheet-open', isMobileFilterOpen)
@@ -761,6 +1112,53 @@ function HomePage({ initialTopTab = 'browse' }) {
         return pages
     }
 
+    const activeTourStep = isTourActive ? tourSteps[tourStepIndex] : null
+
+    const tourTooltipStyle = useMemo(() => {
+        const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 900
+        const cardWidth = Math.min(340, viewportWidth - 32)
+
+        if (!tourTargetRect) {
+            return {
+                width: `${cardWidth}px`,
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+            }
+        }
+
+        const margin = 16
+        const minHalf = (cardWidth / 2) + margin
+        const maxHalf = viewportWidth - minHalf
+        const preferredLeft = tourTargetRect.left + (tourTargetRect.width / 2)
+        const left = Math.max(minHalf, Math.min(preferredLeft, maxHalf))
+
+        const estimatedHeight = 176
+        let top = tourTargetRect.bottom + 14
+        if (top + estimatedHeight > viewportHeight - margin) {
+            top = Math.max(margin, tourTargetRect.top - estimatedHeight - 14)
+        }
+
+        return {
+            width: `${cardWidth}px`,
+            left: `${left}px`,
+            top: `${top}px`,
+            transform: 'translateX(-50%)',
+        }
+    }, [tourTargetRect, viewportWidth])
+
+    const tourSpotlightStyle = useMemo(() => {
+        if (!tourTargetRect) return null
+
+        const pad = 8
+        return {
+            left: `${Math.max(6, tourTargetRect.left - pad)}px`,
+            top: `${Math.max(6, tourTargetRect.top - pad)}px`,
+            width: `${tourTargetRect.width + (pad * 2)}px`,
+            height: `${tourTargetRect.height + (pad * 2)}px`,
+        }
+    }, [tourTargetRect])
+
     const filterPanelInner = (
         <>
             <UnifiedGenrePicker
@@ -880,7 +1278,7 @@ function HomePage({ initialTopTab = 'browse' }) {
             >
                 <div className="px-3 py-2 sm:px-6 md:flex md:h-14 md:items-center md:justify-between md:gap-3 md:py-0">
                     <div className="flex items-center justify-between gap-2">
-                        <div className="shrink-0">
+                        <div className="shrink-0" data-tour="score-trust">
                             <AppLogo isDark={isDark} onClick={() => updateMainFilters({}, 'push')} />
                         </div>
 
@@ -905,20 +1303,23 @@ function HomePage({ initialTopTab = 'browse' }) {
                         </button>
                         <button
                             type="button"
-                            className={`h-full border-b-2 px-0 font-mono text-[11px] tracking-[0.15em] transition-colors ${topTab === 'browse' && category === 'manhwa' ? 'border-accent-red text-text-primary' : 'border-transparent text-text-secondary hover:text-text-primary'}`}
-                            onClick={() => { setTopTab('browse'); handleQuickFilter('manhwa') }}
+                            data-coming-soon-trigger="true"
+                            className="coming-soon-nav h-full border-b-2 border-transparent px-0 font-mono text-[11px] tracking-[0.15em] text-text-secondary transition-colors hover:text-text-primary"
+                            onClick={(event) => showComingSoon('MANHWA', event)}
                         >
                             MANHWA
                         </button>
                         <button
                             type="button"
-                            className={`h-full border-b-2 px-0 font-mono text-[11px] tracking-[0.15em] transition-colors ${topTab === 'browse' && category === 'manhua' ? 'border-accent-red text-text-primary' : 'border-transparent text-text-secondary hover:text-text-primary'}`}
-                            onClick={() => { setTopTab('browse'); handleQuickFilter('manhua') }}
+                            data-coming-soon-trigger="true"
+                            className="coming-soon-nav h-full border-b-2 border-transparent px-0 font-mono text-[11px] tracking-[0.15em] text-text-secondary transition-colors hover:text-text-primary"
+                            onClick={(event) => showComingSoon('MANHUA', event)}
                         >
                             MANHUA
                         </button>
                         <button
                             type="button"
+                            data-tour="charts-tab"
                             className={`h-full border-b-2 px-0 font-mono text-[11px] tracking-[0.15em] transition-colors ${topTab === 'charts' ? 'border-accent-red text-text-primary' : 'border-transparent text-text-secondary hover:text-text-primary'}`}
                             onClick={() => setTopTab('charts')}
                         >
@@ -933,7 +1334,7 @@ function HomePage({ initialTopTab = 'browse' }) {
                         </button>
                     </div>
 
-                    <div className="mt-2 flex items-center gap-2 md:mt-0 md:ml-auto">
+                    <div className="mt-2 flex items-center gap-2 md:mt-0 md:ml-auto" ref={feedbackLayerRef}>
                         <div className="relative w-full md:w-[230px] lg:w-[290px]">
                             <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-text-secondary/70">
                                 <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-none stroke-current stroke-[1.8]">
@@ -952,6 +1353,17 @@ function HomePage({ initialTopTab = 'browse' }) {
                                 onKeyDown={handleSearchKeyDown}
                             />
                         </div>
+                        <button
+                            type="button"
+                            className="feedback-trigger h-11 min-w-[74px] border border-border bg-surface px-2.5 py-0 font-mono text-[10px] tracking-[0.12em] text-text-secondary transition-colors hover:text-text-primary disabled:opacity-45 md:h-9 md:min-w-[96px]"
+                            onClick={toggleFeedbackPanel}
+                            disabled={isTourActive}
+                            title={isTourActive ? 'Finish or skip the tour first' : 'Send feedback'}
+                        >
+                            <span className="md:hidden">FEED</span>
+                            <span className="hidden md:inline">FEEDBACK</span>
+                        </button>
+
                         <div className="hidden items-center gap-2 md:flex [&_.auth-btn--signin]:ml-0 [&_.auth-btn--signin]:h-9 [&_.auth-btn--signin]:px-2.5 [&_.auth-btn--signin]:py-0 [&_.auth-user-menu]:ml-0 [&_.auth-avatar-btn]:h-9 [&_.auth-avatar-btn]:w-9">
                             <AuthButton />
                             <button
@@ -961,14 +1373,177 @@ function HomePage({ initialTopTab = 'browse' }) {
                                 {isDark ? '○ LIGHT' : '● DARK'}
                             </button>
                         </div>
+
+                        {isFeedbackOpen && (
+                            <div className="feedback-panel absolute right-0 top-[calc(100%+10px)] z-[140] w-[min(420px,calc(100vw-24px))] border border-border bg-elevated p-3 shadow-2xl md:p-4" role="dialog" aria-label="Send feedback">
+                                <form className="space-y-3" onSubmit={handleFeedbackSubmit}>
+                                    <div className="feedback-panel-head flex items-center justify-between gap-3">
+                                        <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-text-primary">Send feedback</span>
+                                        <button type="button" className="font-mono text-[10px] uppercase tracking-[0.12em] text-text-secondary hover:text-text-primary" onClick={closeFeedbackPanel}>
+                                            Close
+                                        </button>
+                                    </div>
+
+                                    <label className="feedback-label block font-mono text-[10px] uppercase tracking-[0.11em] text-text-secondary">
+                                        Type
+                                        <select
+                                            className="feedback-input mt-1 h-10 w-full border border-border bg-surface px-3 text-xs text-text-primary outline-none"
+                                            value={feedbackForm.feedback_type}
+                                            onChange={(e) => setFeedbackForm((prev) => ({ ...prev, feedback_type: e.target.value }))}
+                                        >
+                                            <option value="bug">Bug report</option>
+                                            <option value="suggestion">Suggestion</option>
+                                            <option value="general">General</option>
+                                        </select>
+                                    </label>
+
+                                    <label className="feedback-label block font-mono text-[10px] uppercase tracking-[0.11em] text-text-secondary">
+                                        Message
+                                        <textarea
+                                            rows={4}
+                                            maxLength={2000}
+                                            className="feedback-input mt-1 w-full resize-y border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-secondary"
+                                            placeholder="What should we improve first?"
+                                            value={feedbackForm.message}
+                                            onChange={(e) => setFeedbackForm((prev) => ({ ...prev, message: e.target.value }))}
+                                        />
+                                    </label>
+
+                                    <label className="feedback-label block font-mono text-[10px] uppercase tracking-[0.11em] text-text-secondary">
+                                        Email (optional)
+                                        <input
+                                            type="email"
+                                            maxLength={200}
+                                            className="feedback-input mt-1 h-10 w-full border border-border bg-surface px-3 text-sm text-text-primary outline-none placeholder:text-text-secondary"
+                                            placeholder="your@email.com (if you'd like a reply)"
+                                            value={feedbackForm.email}
+                                            onChange={(e) => setFeedbackForm((prev) => ({ ...prev, email: e.target.value }))}
+                                        />
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        tabIndex={-1}
+                                        autoComplete="off"
+                                        className="hidden"
+                                        value={feedbackForm.website}
+                                        onChange={(e) => setFeedbackForm((prev) => ({ ...prev, website: e.target.value }))}
+                                        aria-hidden="true"
+                                    />
+
+                                    {feedbackError && (
+                                        <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-accent-red">{feedbackError}</p>
+                                    )}
+
+                                    <p className="font-mono text-[10px] text-text-ghost">
+                                        Optional email is only used if we need to reply.
+                                    </p>
+
+                                    <div className="flex items-center justify-end gap-2">
+                                        <button
+                                            type="button"
+                                            className="h-9 border border-border bg-surface px-3 font-mono text-[10px] uppercase tracking-[0.12em] text-text-secondary"
+                                            onClick={closeFeedbackPanel}
+                                            disabled={feedbackStatus === 'sending'}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="h-9 border border-accent-red bg-accent-red px-3 font-mono text-[10px] uppercase tracking-[0.12em] text-white disabled:opacity-60"
+                                            disabled={feedbackStatus === 'sending'}
+                                        >
+                                            {feedbackStatus === 'sending' ? 'Sending…' : 'Send'}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        )}
                     </div>
                 </div>
             </header>
 
+            {comingSoonHint && (
+                <div
+                    ref={comingSoonRef}
+                    className="coming-soon-tooltip fixed z-[145] border border-border bg-elevated px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-text-primary"
+                    style={{
+                        left: `${comingSoonHint.left}px`,
+                        top: `${comingSoonHint.top}px`,
+                        transform: 'translateX(-50%)',
+                    }}
+                    role="status"
+                    aria-live="polite"
+                >
+                    {comingSoonHint.message}
+                </div>
+            )}
+
+            {feedbackNotice && (
+                <div className="feedback-notice fixed left-1/2 top-[74px] z-[150] -translate-x-1/2 border border-border bg-elevated px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-text-primary" role="status" aria-live="polite">
+                    {feedbackNotice}
+                </div>
+            )}
+
+            {isFirstVisitRoute && isTourPromptVisible && (
+                <div className="tour-optin fixed bottom-4 left-4 z-[155] w-[min(360px,calc(100vw-24px))] border border-border bg-elevated p-3 shadow-2xl md:p-4" role="dialog" aria-label="Quick guide">
+                    <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-text-primary">First time here?</p>
+                    <p className="mt-2 text-sm text-text-secondary">Take a 60-second walkthrough or explore on your own.</p>
+                    <div className="mt-3 flex items-center justify-end gap-2">
+                        <button type="button" className="h-9 border border-border bg-surface px-3 font-mono text-[10px] uppercase tracking-[0.12em] text-text-secondary" onClick={handleTourSkip}>
+                            Skip
+                        </button>
+                        <button type="button" className="h-9 border border-accent-red bg-accent-red px-3 font-mono text-[10px] uppercase tracking-[0.12em] text-white" onClick={handleTourStart}>
+                            Quick tour
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {isTourActive && activeTourStep && (
+                <div className="tour-layer fixed inset-0 z-[160]" onClick={handleTourNext}>
+                    <div className="tour-layer-dim absolute inset-0" />
+                    {tourSpotlightStyle && (
+                        <div
+                            className="tour-spotlight absolute border border-accent-red/80"
+                            style={tourSpotlightStyle}
+                            aria-hidden="true"
+                        />
+                    )}
+
+                    <div
+                        className="tour-card absolute border border-border bg-elevated p-3 shadow-2xl md:p-4"
+                        style={tourTooltipStyle}
+                        onClick={(event) => event.stopPropagation()}
+                        role="dialog"
+                        aria-label="Tour step"
+                    >
+                        <div className="mb-2 flex items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-text-ghost">
+                            <span>Step {tourStepIndex + 1}/{tourSteps.length}</span>
+                            <button type="button" className="text-text-secondary hover:text-text-primary" onClick={handleTourSkip}>
+                                Skip
+                            </button>
+                        </div>
+
+                        <p className="text-sm leading-6 text-text-primary">{activeTourStep.copy}</p>
+
+                        <div className="mt-3 flex items-center justify-end gap-2">
+                            <button
+                                type="button"
+                                className="h-9 border border-accent-red bg-accent-red px-3 font-mono text-[10px] uppercase tracking-[0.12em] text-white"
+                                onClick={handleTourNext}
+                            >
+                                {tourStepIndex >= tourSteps.length - 1 ? 'Done' : 'Next'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {topTab === 'browse' && (
                 <>
                     <div className="relative border-b border-border">
-                        <div className="category-strip flex gap-3 overflow-x-auto px-3 py-3.5 md:px-6 md:py-4">
+                        <div className="category-strip flex gap-3 overflow-x-auto px-3 py-3.5 md:px-6 md:py-4" data-tour="category-strip">
                             {QUICK_FILTERS.map(({ label, category: quickCategory, desc }) => (
                                 <div
                                     key={quickCategory}
@@ -1011,6 +1586,7 @@ function HomePage({ initialTopTab = 'browse' }) {
                     <div className="mobile-filter-toolbar sticky top-[88px] z-40 flex items-center justify-between gap-2 border-b border-border bg-background/95 px-3 py-2 backdrop-blur-sm md:top-14 lg:hidden">
                         <button
                             type="button"
+                            data-tour="mobile-filter-btn"
                             className="mobile-filter-btn relative inline-flex h-11 items-center justify-center gap-2 border border-accent-red bg-elevated px-3 font-mono text-xs tracking-[0.12em] text-text-primary"
                             onClick={() => setIsMobileFilterOpen(true)}
                         >
@@ -1217,6 +1793,7 @@ function HomePage({ initialTopTab = 'browse' }) {
                     </button>
                     <button
                         type="button"
+                        data-tour="charts-tab"
                         className={`min-h-11 border px-2 font-mono text-[11px] tracking-[0.1em] ${topTab === 'charts' ? 'border-accent-red bg-elevated text-text-primary' : 'border-border bg-surface text-text-secondary'}`}
                         onClick={() => setTopTab('charts')}
                     >

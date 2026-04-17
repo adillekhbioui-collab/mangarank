@@ -20,7 +20,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend import deps
-from backend.routes import analytics, admin, manga, proxy
+from backend.routes import analytics, admin, feedback, manga, proxy
 
 
 def _with_loopback_variants(origins: list[str]) -> list[str]:
@@ -97,6 +97,7 @@ app.add_middleware(
 app.include_router(manga.router)
 app.include_router(admin.router)
 app.include_router(analytics.router)
+app.include_router(feedback.router)
 app.include_router(proxy.router)
 
 

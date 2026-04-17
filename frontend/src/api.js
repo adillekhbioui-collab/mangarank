@@ -65,6 +65,33 @@ export async function fetchStats() {
     return res.json();
 }
 
+export async function submitFeedback(payload) {
+    const res = await fetch(`${API_BASE}/feedback`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+        let detail = 'Failed to send feedback.';
+        try {
+            const body = await res.json();
+            if (body && typeof body === 'object' && body.detail) {
+                detail = String(body.detail);
+            }
+        } catch {
+            // Keep default message.
+        }
+        const err = new Error(detail);
+        err.status = res.status;
+        throw err;
+    }
+
+    return res.json();
+}
+
 function getAdminHeaders(adminPassword) {
     return {
         'X-Admin-Password': adminPassword,
